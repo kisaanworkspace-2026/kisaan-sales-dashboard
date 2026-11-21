@@ -1,0 +1,59 @@
+/* Global filter state + fast row masks. Every page reads from here, so filters are shared across pages. */
+const F = (() => {
+  const saved = store.get('filters', {});
+  const st = {
+    preset: saved.preset || '30d', from: saved.from || null, to: saved.to || null,
+    types: new Set(saved.types || []), prods: new Set(saved.prods || []), cities: new Set(saved.cities || []),
+    dows: new Set(saved.dows || []), q: saved.q || ''
+  };
+  const subs = [];
+  let lut = null, buf1 = null, buf2 = null;
+  const persist = () => store.set('filters', { preset: st.preset, from: st.from, to: st.to, types: [...st.types], prods: [...st.prods], cities: [...st.cities], dows: [...st.dows], q: st.q });
+
+  function resolve() {                                            // names -> lookup tables for current dictionary
+    const D = Store.D; if (!D) return;
+    const mk = (set, list) => { if (!set.size) return null; const a = new Uint8Array(list.length); list.forEach((nm, i) => { if (set.has(nm)) a[i] = 1; }); return a; };
+    lut = { type: mk(st.types, D.dict.type), prod: mk(st.prods, D.dict.prod), city: mk(st.cities, D.dict.city), cust: null, dow: null };
+    if (st.dows.size) { lut.dow = new Uint8Array(7); st.dows.forEach(d => lut.dow[d] = 1); }
+    if (st.q.trim()) { const q = st.q.trim().toLowerCase(); lut.cust = new Uint8Array(D.custSearch.length); D.custSearch.forEach((t, i) => { if (t.includes(q)) lut.cust[i] = 1; }); }
+    if (!buf1 || buf1.length !== D.n) { buf1 = new Uint8Array(D.n); buf2 = new Uint8Array(D.n); }
+  }
+  const F = {
+    st,
+    range() {
+      const D = Store.D, mx = D.maxDay, mn = D.minDay;
+      switch (st.preset) {
+        case '7d': return { from: mx - 6, to: mx };
+        case '30d': return { from: mx - 29, to: mx };
+        case '90d': return { from: mx - 89, to: mx };
+        case 'mtd': return { from: monthStart(mx), to: mx };
+        case 'custom': return { from: st.from ?? mn, to: st.to ?? mx };
+        default: return { from: mn, to: mx };
+      }
+    },
+    /** previous period of equal length (null when it would start before the data) */
+    prevRange() { const { from, to } = F.range(); const len = to - from + 1; const p = { from: from - len, to: from - 1 }; return p.to < Store.D.minDay ? null : p; },
+    /** fills and returns a row mask. slot 0 = current, 1 = previous/second */
+    mask(from, to, slot = 0) {
+      const D = Store.D, n = D.n, buf = slot ? buf2 : buf1, { type, prod, city, cust, dow } = lut;
+      const day = D.day, T = D.type, P = D.prod, Y = D.city, C = D.cust;
+      for (let i = 0; i < n; i++) {
+        const d = day[i];
+        buf[i] = (d >= from && d <= to && (!type || type[T[i]]) && (!prod || prod[P[i]]) && (!city || city[Y[i]]) && (!cust || cust[C[i]]) && (!dow || dow[(d + 3) % 7])) ? 1 : 0;
+      }
+      return buf;
+    },
+    isActive() { return st.types.size || st.prods.size || st.cities.size || st.dows.size || st.q.trim(); },
+    set(patch) { Object.assign(st, patch); F.changed(); },
+    toggle(dim, val) { const s = st[dim]; s.has(val) ? s.delete(val) : s.add(val); F.changed(); },
+    clear() { st.types.clear(); st.prods.clear(); st.cities.clear(); st.dows.clear(); st.q = ''; F.changed(); },
+    onChange(fn) { subs.push(fn); },
+    changed() { persist(); resolve(); subs.forEach(f => f()); },
+    prepare() { resolve(); },                                      // call after (re)loading data
+    pruneUnknown() {                                               // drop saved selections that no longer exist in the data
+      const D = Store.D; if (!D) return;
+      for (const [k, list] of [['types', D.dict.type], ['prods', D.dict.prod], ['cities', D.dict.city]]) for (const v of [...st[k]]) if (!list.includes(v)) st[k].delete(v);
+    }
+  };
+  return F;
+})();
