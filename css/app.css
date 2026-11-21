@@ -6,7 +6,7 @@ button,input{font:inherit;color:inherit}
 #app{display:grid;grid-template-columns:208px 1fr;min-height:100vh}
 .side{background:var(--side);color:#dfe9e4;padding:18px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .brand{display:flex;gap:10px;align-items:center;padding:4px 8px 18px}.brand b{display:block;font-size:16px;color:#fff}.brand span{font-size:11.5px;color:#8fa79c}
-.logo{background:var(--brand);border-radius:10px;width:38px;height:38px;display:grid;place-items:center}
+.logo{background:#fff;border-radius:10px;width:46px;height:46px;display:grid;place-items:center;overflow:hidden}.logo img{width:100%;height:100%;object-fit:cover;transform:scale(1.18)}
 .nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#b9cbc3;text-decoration:none;margin-bottom:2px;font-weight:500}
 .nav:hover{background:#ffffff12;color:#fff}.nav.on{background:var(--brand);color:#fff}.nav.soon{opacity:.45;cursor:default}.nav.soon:hover{background:none;color:#b9cbc3}
 .nav em{margin-left:auto;font-size:10px;font-style:normal;background:#ffffff1c;padding:1px 6px;border-radius:9px}

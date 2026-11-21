@@ -1,7 +1,7 @@
 /* ===== Edit this file only. =====
    API_URL: paste your Apps Script Web App URL (ends with /exec). Leave '' to run on the bundled sample data (demo mode). */
 window.CFG = {
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwKPGEHNxoEj9Qzjv-8afu2krkw4tBk5VQU3cYsSTE7eXjiZBOoQnwHiCTIh8GLz5AT/exec',
   SAMPLE_URL: 'data/sample.json',
   TITLE: 'Kisaan Sales',
   CURRENCY: 'AUD',

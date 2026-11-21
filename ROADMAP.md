@@ -21,3 +21,5 @@ Rules: revenue = sum of oTotal over distinct orders touched by the mask; product
   - shipping_city in: Salisbury Plain, Bahrs Scrub, Seven Hills, New Town, Mowbray, Corio, Geelong, Armstrong Creek, Grovedale, Belmont, Charlemont, Norlane, Moolap, Drumcondra, Sebastopol, Lavington, Wodonga
   - shipping_name in: Sip N Shop Indian Mart Mildura, Nice Indian Store Mildura
   Keep this list in one config constant (js/config.js `INTERSTATE`) so it is easy to edit; if a single combined sheet is used later, split by these rules instead.
+## Brand assets (in /assets, use in all pages and the Phase 6 PWA)
+icon-192.png, icon-512.png, icon-maskable-512.png (PWA maskable), apple-touch-icon.png, kisaan-logo.jpg (full logo). Brand colours from the logo: forest green ~#1a4d2a and cow-brown ~#7a3515 (current UI accent is #1f7a5a; consider aligning in Phase 6).
