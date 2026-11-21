@@ -15,7 +15,7 @@ Rules: revenue = sum of oTotal over distinct orders touched by the mask; product
 - **3 Customers (DONE)**: new vs returning, inactive customers (days since last order), order frequency, top/bottom lists, customer drawer (order history, product mix).
 - **4 Cities (DONE)**: city ranking table, revenue/orders/customers per city, city × product heat matrix.
 - **5 B2B vs B2C (DONE)**: side-by-side KPIs, avg order value, weekday pattern, delivery calendar heatmap.
-- **6 Polish**: saved filter views, targets/goals line, print/PDF view, installable PWA (manifest + service worker), anomaly highlights (e.g. big drop vs last week).
+- **6 Polish (DONE: saved views, daily target line, insights strip, print, PWA manifest + sw.js, brand colours; sw.js VERSION must be bumped on each release)**: saved filter views, targets/goals line, print/PDF view, installable PWA (manifest + service worker), anomaly highlights (e.g. big drop vs last week).
 - **7 Interstate Sales (new page, separate data)**: the main sales export EXCLUDES interstate stores, so this page needs its own Google Sheet tab (same 12 columns) and a second API payload (`?a=data&tab=interstate`, own cache key + IndexedDB key); reuse the same engine and page pattern.
   Interstate = rows matching EITHER rule (the main export's SQL is `AND o.shipping_city NOT IN (...) AND o.shipping_name NOT IN (...)`):
   - shipping_city in: Salisbury Plain, Bahrs Scrub, Seven Hills, New Town, Mowbray, Corio, Geelong, Armstrong Creek, Grovedale, Belmont, Charlemont, Norlane, Moolap, Drumcondra, Sebastopol, Lavington, Wodonga

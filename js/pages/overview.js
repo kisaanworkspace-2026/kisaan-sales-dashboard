@@ -1,6 +1,6 @@
 /* Page: Overview. One pass over the filtered rows computes everything shown on the page. */
 Pages.overview = (() => {
-  let root, els = {}, last = null, gran = store.get('gran', 'auto');
+  let root, els = {}, last = null, target = store.get('target', 0), gran = store.get('gran', 'auto');
   const money = money0;
 
   function totals(sel) {
@@ -49,6 +49,23 @@ Pages.overview = (() => {
 
   function top(arr, n, filterFn) { const idx = []; for (let i = 0; i < arr.length; i++) if (filterFn(i)) idx.push(i); return idx.sort((a, b) => arr[b] - arr[a]).slice(0, n); }
 
+  function insights(from, to, A, P) {
+    const D = Store.D, msgs = [], sel = F.mask(Math.max(D.minDay, to - 28), to, 1), seen = new Uint8Array(D.nOrders), dd = new Map();
+    for (let i = 0; i < D.n; i++) if (sel[i]) { const k = D.oi[i]; if (!seen[k]) { seen[k] = 1; dd.set(D.oDay[k], (dd.get(D.oDay[k]) || 0) + D.oTotal[k]); } }
+    const same = [7, 14, 21, 28].map(x => dd.get(to - x)).filter(v => v != null), lastV = dd.get(to) || 0;
+    if (same.length >= 2) { const base = same.reduce((a, b) => a + b, 0) / same.length, ch = base ? (lastV - base) / base : 0; if (Math.abs(ch) >= .25) msgs.push({ bad: ch < 0, t: `${dLong(to)} (${DOW[dowOf(to)]}) revenue ${money0(lastV)} is ${pct(Math.abs(ch), 0)} ${ch < 0 ? 'below' : 'above'} the usual ${DOW[dowOf(to)]} (${money0(base)})` }); }
+    if (P && P.rev && Math.abs((A.rev - P.rev) / P.rev) >= .15) { const ch = (A.rev - P.rev) / P.rev; msgs.push({ bad: ch < 0, t: `Revenue is ${pct(Math.abs(ch), 0)} ${ch < 0 ? 'down' : 'up'} on the previous period` }); }
+    const days = to - from + 1;
+    if (target > 0) { const r = A.rev / days / target; msgs.push({ bad: r < 1, t: `Revenue per day ${money0(A.rev / days)} is ${pct(r, 0)} of your ${money0(target)}/day target` }); }
+    let big = 0; for (const k of A.orders) if (D.oTotal[k] > big) big = D.oTotal[k];
+    if (A.rev && big / A.rev > .08 && A.nOrders > 20) msgs.push({ bad: false, t: `One order (${money0(big)}) is ${pct(big / A.rev, 0)} of this period's revenue` });
+    els.insights.replaceChildren(...msgs.map(m => h('span', { class: 'ins ' + (m.bad ? 'bad' : 'good') }, (m.bad ? '▼ ' : '▲ ') + m.t)));
+    els.insights.style.display = msgs.length ? '' : 'none';
+  }
+  function setTarget() {
+    const v = prompt('Daily revenue target in dollars (0 to remove):', target || ''); if (v === null) return;
+    target = Math.max(0, parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0); store.set('target', target); update();
+  }
   function update() {
     const D = Store.D, { from, to } = F.range(), A = last = compute(from, to), pr = F.prevRange(), P = pr ? totals(F.mask(pr.from, pr.to, 1)) : null;
     const dl = (a, b) => P && b ? (a - b) / b : null, S = F.st;
@@ -62,7 +79,9 @@ Pages.overview = (() => {
       UI.kpi({ label: 'Revenue / day', value: money(A.rev / (to - from + 1)), delta: dl(A.rev, P && P.rev), hint: 'full range' }));
 
     const B = buckets(from, to, A);
-    Charts.trend(els.trend, { x: B.x, a: { name: 'Revenue', data: B.a, fmt: money2, axis: moneyC }, b: { name: 'Orders', data: B.b, fmt: fmtInt }, label: i => B.label(B.x[i]), tick: i => B.tick(B.x[i]) });
+    const tg = target > 0 ? B.x.map((d, i) => target * (B.g === 'day' ? 1 : B.g === 'week' ? Math.min(7, to - d + 1) : Math.min(new Date(Date.UTC(dt(d).getUTCFullYear(), dt(d).getUTCMonth() + 1, 0)).getUTCDate(), to - d + 1))) : null;
+    insights(from, to, A, P);
+    Charts.trend(els.trend, { target: tg, x: B.x, a: { name: 'Revenue', data: B.a, fmt: money2, axis: moneyC }, b: { name: 'Orders', data: B.b, fmt: fmtInt }, label: i => B.label(B.x[i]), tick: i => B.tick(B.x[i]) });
     els.gran.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === (gran === 'auto' ? B.g : gran)));
 
     Charts.donut(els.type, top(A.type, 9, i => A.type[i] > 0).map(i => ({ key: D.dict.type[i], label: D.dict.type[i].toUpperCase(), value: A.type[i], color: D.typeColor[i] })),
@@ -83,7 +102,7 @@ Pages.overview = (() => {
   function mount(container) {
     root = container; const D = Store.D;
     const gbtn = (g, t) => h('button', { type: 'button', 'data-g': g, onclick: () => { gran = g; store.set('gran', g); update(); } }, t);
-    els.sub = h('span'); els.kpis = h('div', { class: 'kpis' }); els.trend = h('div', { class: 'trendbox' });
+    els.sub = h('span'); els.insights = h('div', { class: 'insights' }); els.kpis = h('div', { class: 'kpis' }); els.trend = h('div', { class: 'trendbox' });
     els.gran = h('div', { class: 'seg' }, gbtn('day', 'Day'), gbtn('week', 'Week'), gbtn('month', 'Month'));
     els.type = h('div'); els.prod = h('div'); els.city = h('div'); els.dow = h('div');
     els.cust = UI.table({ pageSize: 10, rows: [], search: { placeholder: 'Search customer…', text: c => D.custSearch[c] }, cols: [
@@ -95,7 +114,7 @@ Pages.overview = (() => {
       { label: 'Date', get: k => dShort(D.oDay[k]), val: k => D.oDay[k] }, { label: 'Order #', get: k => D.oId[k], val: k => D.oId[k] },
       { label: 'Customer', get: k => D.custLabel[D.oCust[k]], cls: () => 'strong' }, { label: 'Type', get: k => UI.pill(D.dict.type[D.oType[k]], D.oType[k]), val: k => D.oType[k] },
       { label: 'Amount', align: 'r', get: k => money2(D.oTotal[k]), val: k => D.oTotal[k] }] });
-    root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'Overview'), els.sub), els.kpis,
+    root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'Overview'), els.sub, h('button', { class: 'btn', style: { marginLeft: 'auto' }, onclick: setTarget }, '🎯 Daily target')), els.insights, els.kpis,
       h('div', { class: 'grid' },
         UI.card('Revenue & orders over time', els.trend, { span: 8, sub: 'Area = revenue (left axis) · bars = orders (right axis)', tools: els.gran }),
         UI.card('Revenue by order type', els.type, { span: 4, sub: 'Click a slice to filter' }),

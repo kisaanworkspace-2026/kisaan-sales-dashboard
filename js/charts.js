@@ -22,13 +22,14 @@ const Charts = {
     const draw = W => {
       el.innerHTML = '';
       const n = o.x.length, iw = W - M.l - M.r, ih = H - M.t - M.b;
-      const ya = nice(Math.max(0, ...o.a.data)), yb = nice(Math.max(0, ...o.b.data) * 2.4);   // bars stay in the lower part
+      const ya = nice(Math.max(0, ...o.a.data, ...(o.target || []))), yb = nice(Math.max(0, ...o.b.data) * 2.4);   // bars stay in the lower part
       const px = i => M.l + (n === 1 ? iw / 2 : (i + .5) * iw / n), pya = v => M.t + ih - v / ya.max * ih, pyb = v => M.t + ih - v / yb.max * ih;
       const svg = s('svg', { width: W, height: H, class: 'chart' });
       for (let v = 0; v <= ya.max + 1e-9; v += ya.step) {
         const y = pya(v); svg.append(s('line', { x1: M.l, x2: W - M.r, y1: y, y2: y, class: 'grid' }), s('text', { x: M.l - 8, y: y + 4, class: 'ax', 'text-anchor': 'end' }, o.a.axis(v)));
       }
       for (let v = 0; v <= yb.max + 1e-9; v += yb.step) if (v) svg.append(s('text', { x: W - M.r + 8, y: pyb(v) + 4, class: 'ax ax2' }, compact(v)));
+      if (o.target && o.target[0] > 0) { const ty = pya(o.target[0]); svg.append(s('line', { x1: M.l, x2: W - M.r, y1: ty, y2: ty, class: 'tgt' }), s('text', { x: M.l + 4, y: ty - 5, class: 'ax tgtl' }, 'Target ' + o.a.axis(o.target[0]))); }
       const bw = Math.max(1, Math.min(18, iw / n * .62));
       o.b.data.forEach((v, i) => { if (v > 0) svg.append(s('rect', { x: px(i) - bw / 2, y: pyb(v), width: bw, height: pyb(0) - pyb(v), class: 'bar2', rx: bw > 4 ? 2 : 0 })); });
       const pts = o.a.data.map((v, i) => [px(i), pya(v)]);
@@ -45,7 +46,7 @@ const Charts = {
         const r = ov.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.floor((ev.clientX - r.left) / r.width * n)));
         cross.setAttribute('x1', px(i)); cross.setAttribute('x2', px(i)); cross.style.display = '';
         hot.setAttribute('cx', px(i)); hot.setAttribute('cy', pya(o.a.data[i])); hot.style.display = '';
-        Tip.show(`<b>${o.label(i)}</b><div class="tr"><i style="background:var(--c1)"></i>${o.a.name}<span>${o.a.fmt(o.a.data[i])}</span></div><div class="tr"><i style="background:var(--c2)"></i>${o.b.name}<span>${o.b.fmt(o.b.data[i])}</span></div>`, ev);
+        Tip.show(`<b>${o.label(i)}</b><div class="tr"><i style="background:var(--c1)"></i>${o.a.name}<span>${o.a.fmt(o.a.data[i])}</span></div><div class="tr"><i style="background:var(--c2)"></i>${o.b.name}<span>${o.b.fmt(o.b.data[i])}</span></div>${o.target ? `<div class="tr dimt">Target<span>${o.a.fmt(o.target[i])}</span></div>` : ''}`, ev);
       });
       ov.addEventListener('mouseleave', () => { cross.style.display = hot.style.display = 'none'; Tip.hide(); });
       svg.append(cross, hot, ov); el.append(svg);

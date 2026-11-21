@@ -27,12 +27,20 @@ const App = (() => {
     slicers = [sl('Order type', 'types', D.dict.type, t => t.toUpperCase()), sl('Product', 'prods', D.dict.prod), sl('City', 'cities', D.dict.city, c => c || '(unknown)'), sl('Weekday', 'dows', DOW)];
     const q = h('input', { type: 'search', class: 'custq', placeholder: 'Customer / phone…', value: S.q, oninput: e => { clearTimeout(q._t); q._t = setTimeout(() => F.set({ q: e.target.value }), 180); } });
     chips = h('div', { class: 'chips' });
-    $('#filters').replaceChildren(h('div', { class: 'frow' }, dateBar, h('span', { class: 'vsep' }), ...slicers, q, h('button', { class: 'btn clear', type: 'button', onclick: () => { q.value = ''; F.clear(); } }, 'Reset filters')), chips);
+    const views = h('div', { class: 'slicer' }), vb = h('button', { class: 'sbtn', type: 'button' }, h('span', null, 'Saved views'), h('i', { class: 'chev' })); let vp = null;
+    const closeV = () => { vp && vp.remove(); vp = null; };
+    vb.addEventListener('click', () => { if (vp) return closeV(); const list = store.get('views', []);
+      vp = h('div', { class: 'spanel' }, h('div', { class: 'slist' }, list.length ? list.map((v, i) => h('div', { class: 'sopt' }, h('span', { style: { flex: 1, cursor: 'pointer' }, onclick: () => { F.apply(v.f); q.value = v.f.q || ''; closeV(); } }, v.name), h('button', { class: 'x', title: 'Delete', onclick: () => { list.splice(i, 1); store.set('views', list); closeV(); } }, '✕'))) : h('div', { class: 'empty' }, 'No saved views yet')),
+        h('div', { class: 'sfoot' }, h('button', { type: 'button', onclick: () => { const n = prompt('Name this view (current filters and dates):'); if (n) { list.push({ name: n.trim(), f: F.snapshot() }); store.set('views', list); toast('View saved'); } closeV(); } }, '+ Save current'), h('button', { type: 'button', onclick: closeV }, 'Close')));
+      views.append(vp); });
+    views.append(vb);
+    $('#filters').replaceChildren(h('div', { class: 'frow' }, dateBar, h('span', { class: 'vsep' }), ...slicers, q, views, h('button', { class: 'btn clear', type: 'button', onclick: () => { q.value = ''; F.clear(); } }, 'Reset filters')), chips);
     syncFilters();
   }
 
   function syncFilters() {
     const S = F.st, D = Store.D, { from, to } = F.range();
+    const cq = $('.custq'); if (cq && document.activeElement !== cq) cq.value = S.q;
     dateBar.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === S.preset));
     dateBar._in[0].value = dISO(from); dateBar._in[1].value = dISO(to);
     dateBar._in.forEach(i => { i.min = dISO(D.minDay); i.max = dISO(D.maxDay); });
@@ -72,6 +80,8 @@ const App = (() => {
       window.addEventListener('hashchange', show);
       $('#refresh').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('spin'); try { const ch = await Store.refresh(true); if (!ch) toast('Already up to date'); } catch (err) { toast('Refresh failed: ' + err.message); } b.classList.remove('spin'); status(); });
       $('#theme').addEventListener('click', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('theme', t); });
+      $('#print').addEventListener('click', () => window.print());
+      if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
       setInterval(status, 60000);
       await show(); splash.classList.add('gone');
     }
