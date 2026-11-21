@@ -12,7 +12,12 @@ Rules: revenue = sum of oTotal over distinct orders touched by the mask; product
 
 ## Phases (one chat each; paste "Continue the Kisaan Sales Dashboard from ROADMAP.md, build Phase N" + attach the zip)
 - **2 Products (DONE)**: ranking table (units, orders, buyers, avg units/order, trend sparkline), product × order-type stacked bars, product trend over time, click row → drawer with top buyers.
-- **3 Customers**: new vs returning, inactive customers (days since last order), order frequency, top/bottom lists, customer drawer (order history, product mix).
+- **3 Customers (DONE)**: new vs returning, inactive customers (days since last order), order frequency, top/bottom lists, customer drawer (order history, product mix).
 - **4 Cities**: city ranking table, revenue/orders/customers per city, city × product heat matrix.
 - **5 B2B vs B2C**: side-by-side KPIs, avg order value, weekday pattern, delivery calendar heatmap.
 - **6 Polish**: saved filter views, targets/goals line, print/PDF view, installable PWA (manifest + service worker), anomaly highlights (e.g. big drop vs last week).
+- **7 Interstate Sales (new page, separate data)**: the main sales export EXCLUDES interstate stores, so this page needs its own Google Sheet tab (same 12 columns) and a second API payload (`?a=data&tab=interstate`, own cache key + IndexedDB key); reuse the same engine and page pattern.
+  Interstate = rows matching EITHER rule (the main export's SQL is `AND o.shipping_city NOT IN (...) AND o.shipping_name NOT IN (...)`):
+  - shipping_city in: Salisbury Plain, Bahrs Scrub, Seven Hills, New Town, Mowbray, Corio, Geelong, Armstrong Creek, Grovedale, Belmont, Charlemont, Norlane, Moolap, Drumcondra, Sebastopol, Lavington, Wodonga
+  - shipping_name in: Sip N Shop Indian Mart Mildura, Nice Indian Store Mildura
+  Keep this list in one config constant (js/config.js `INTERSTATE`) so it is easy to edit; if a single combined sheet is used later, split by these rules instead.

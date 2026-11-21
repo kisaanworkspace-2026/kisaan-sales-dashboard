@@ -67,3 +67,4 @@ td{border-bottom:1px solid var(--soft);font-variant-numeric:tabular-nums}.r{text
 .donut{min-height:230px}.nav{white-space:nowrap}
 .kpis.k5{grid-template-columns:repeat(5,1fr)}.stk{display:flex;flex-direction:column;gap:7px}.stk .hrow{grid-template-columns:minmax(80px,34%) 1fr 54px}.legend.row{display:flex;gap:14px;margin-top:10px}.kv-hint{color:var(--mut)}
 .kpi .kv{overflow:hidden;text-overflow:ellipsis}
+h4{margin:16px 0 6px;font-size:13px;color:var(--mut)}
