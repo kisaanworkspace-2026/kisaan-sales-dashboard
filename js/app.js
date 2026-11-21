@@ -6,14 +6,20 @@ const NAV = [
   { id: 'products', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
   { id: 'customers', title: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
   { id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
-  { id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true }
+  { id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true },
+  { group: 'Interstate sales' },
+  { id: 'i-overview', page: 'overview', ds: 'interstate', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
+  { id: 'i-orders', page: 'orders', ds: 'interstate', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10', line: true },
+  { id: 'i-products', page: 'products', ds: 'interstate', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
+  { id: 'i-customers', page: 'customers', ds: 'interstate', title: 'Stores', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
+  { id: 'i-cities', page: 'geography', ds: 'interstate', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
 ];
 const App = (() => {
   let current = null, mounted = {}, slicers = [], chips, dateBar, statusEl;
   const icon = (d, line) => s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, fill: line ? 'none' : 'currentColor', stroke: line ? 'currentColor' : 'none', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, s('path', { d }));
 
   function buildNav() {
-    $('#nav').replaceChildren(...NAV.map(n => h('a', { href: n.soon ? null : '#/' + n.id, class: 'nav' + (n.soon ? ' soon' : ''), 'data-id': n.id, title: n.soon ? n.title + ' – coming in a later phase' : n.title }, icon(n.icon, n.line), h('span', null, n.title), n.soon ? h('em', null, n.soon) : null)));
+    $('#nav').replaceChildren(...NAV.map(n => n.group ? h('div', { class: 'navgroup' }, n.group) : h('a', { href: n.soon ? null : '#/' + n.id, class: 'nav' + (n.soon ? ' soon' : ''), 'data-id': n.id, title: n.soon ? n.title + ' – coming in a later phase' : n.title }, icon(n.icon, n.line), h('span', null, n.title), n.soon ? h('em', null, n.soon) : null)));
   }
 
   function buildFilters() {
@@ -57,12 +63,19 @@ const App = (() => {
   }
 
   async function show() {
-    const id = (location.hash.match(/^#\/(\w+)/) || [, 'overview'])[1], nav = NAV.find(n => n.id === id && !n.soon) || NAV[0];
+    const id = (location.hash.match(/^#\/([\w-]+)/) || [, 'overview'])[1], nav = NAV.find(n => n.id === id && !n.soon && !n.group) || NAV[0], ds = nav.ds || 'main', page = nav.page || nav.id;
     document.querySelectorAll('.nav').forEach(a => a.classList.toggle('on', a.dataset.id === nav.id));
-    if (!Pages[nav.id]) await new Promise((ok, no) => document.head.append(h('script', { src: `js/pages/${nav.id}.js`, onload: ok, onerror: no })));
-    const host = $('#page'); current = Pages[nav.id];
-    if (!mounted[nav.id] || mounted[nav.id].D !== Store.D) { const el = h('div'); current.mount(el); mounted[nav.id] = { D: Store.D, el }; }
-    host.replaceChildren(mounted[nav.id].el);
+    if (Store.name !== ds) {
+      const sp = $('#splash'); sp.classList.remove('gone'); sp.querySelector('p').textContent = 'Loading ' + ds + ' data…';
+      try { await Store.use(ds); } catch (e) { sp.querySelector('p').textContent = 'Could not load ' + ds + ' data: ' + e.message; return; }
+      F.useSet(ds); buildFilters(); status(); sp.classList.add('gone');
+    }
+    const host = $('#page');
+    if (!Store.D.n) { host.replaceChildren(h('div', { class: 'empty big' }, h('h3', null, 'No ' + ds + ' data yet'), h('p', null, 'Add a tab named "Interstate" to the Google Sheet (same 12 columns) and paste the interstate sales there, then press refresh.'))); return; }
+    if (!Pages[page]) await new Promise((ok, no) => document.head.append(h('script', { src: `js/pages/${page}.js`, onload: ok, onerror: no })));
+    current = Pages[page];
+    if (!mounted[page] || mounted[page].D !== Store.D) { const el = h('div'); current.mount(el); mounted[page] = { D: Store.D, el }; }
+    host.replaceChildren(ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores') : null, mounted[page].el);
     current.update();
   }
 
@@ -78,7 +91,7 @@ const App = (() => {
       F.onChange(rerender);
       Store.onData((D, first) => { mounted = {}; buildFilters(); status(); show(); toast('Data updated'); });
       window.addEventListener('hashchange', show);
-      $('#refresh').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('spin'); try { const ch = await Store.refresh(true); if (!ch) toast('Already up to date'); } catch (err) { toast('Refresh failed: ' + err.message); } b.classList.remove('spin'); status(); });
+      $('#refresh').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('spin'); try { if (Store.name === 'main') { const ch = await Store.refresh(true); if (!ch) toast('Already up to date'); } else await Store.pullSet(Store.name, true); } catch (err) { toast('Refresh failed: ' + err.message); } b.classList.remove('spin'); status(); });
       $('#theme').addEventListener('click', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('theme', t); });
       $('#print').addEventListener('click', () => window.print());
       if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });

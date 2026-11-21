@@ -70,11 +70,34 @@ const Store = (() => {
 
   const listeners = [];
   const S = {
-    D: null, mode: CFG.API_URL ? 'live' : 'demo', loadedAt: 0, source: '',
+    D: null, name: 'main', sets: {}, mode: CFG.API_URL ? 'live' : 'demo', loadedAt: 0, source: '',
     onData(fn) { listeners.push(fn); },
     emit(first) { listeners.forEach(f => f(S.D, first)); },
 
-    async init(setStatus) {
+    async init(setStatus) { const D = await S._init(setStatus); S.sets.main = D; return D; },
+
+    /** switch the active dataset ('main' | 'interstate'); loads it on first use */
+    async use(name) {
+      if (S.name === name && S.D) return S.D;
+      if (!S.sets[name]) S.sets[name] = await S.loadSet(name);
+      S.name = name; S.D = S.sets[name]; return S.D;
+    },
+    emptySet() { return decode({ v: 'empty', n: 0, dict: { type: [], prod: [], city: [], addr: [], cust: [] }, d: [], o: [], i: [], t: [], p: [], q: [], a: [], c: [], y: [], ad: [] }); },
+    async loadSet(name) {
+      if (!CFG.API_URL) { try { const r = await fetch(CFG.SAMPLE_INTERSTATE_URL); if (!r.ok) throw 0; return decode(await r.json()); } catch (e) { return S.emptySet(); } }
+      const c = await idbGet('payload_' + name);
+      if (c) { const D = decode(c); S.sets[name] = D; S.pullSet(name, false).catch(() => { }); return D; }
+      return S.pullSet(name, true);
+    },
+    async pullSet(name, force) {
+      if (!force && S.sets[name]) { const { v } = await api('a=ver&tab=' + name); if (v === S.sets[name].ver) return S.sets[name]; }
+      const r = await api('a=data&tab=' + name + (force ? '&force=1' : '')), p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
+      idbSet('payload_' + name, p); const D = decode(p); S.sets[name] = D; S.loadedAt = Date.now();
+      if (S.name === name) { S.D = D; S.emit(false); }
+      return D;
+    },
+
+    async _init(setStatus) {
       const t0 = performance.now();
       if (!CFG.API_URL) {                                         // demo mode: bundled sample
         const p = await (await fetch(CFG.SAMPLE_URL)).json();
@@ -100,8 +123,9 @@ const Store = (() => {
       const r = await api('a=data' + (force ? '&force=1' : ''));
       const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
       idbSet('payload', p);
-      const first = !S.D;
-      S.D = decode(p); S.source = 'Live from Google Sheet'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;
+      const first = !S.D, nd = decode(p); S.sets.main = nd;
+      if (S.name !== 'main') return true;
+      S.D = nd; S.source = 'Live from Google Sheet'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;
       S.emit(first);
       return true;
     }

@@ -78,3 +78,7 @@ h4{margin:16px 0 6px;font-size:13px;color:var(--mut)}
 .insights{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ins{border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;border:1px solid}.ins.good{color:var(--good);background:color-mix(in srgb,var(--good) 10%,transparent);border-color:color-mix(in srgb,var(--good) 30%,transparent)}.ins.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
 .sopt .x{width:22px;height:22px;margin-left:auto;font-size:11px}
 @media print{.side,.filters .frow,.actions,.ttools,.tfoot,.seg,#splash,#tip,.pagehead .btn{display:none!important}#app{display:block}main{padding:0}.filters{position:static;border:0}.card,.kpi,.tcard{break-inside:avoid;box-shadow:none}body{background:#fff}.chips{margin:0 0 8px}}
+
+.navgroup{margin:14px 10px 4px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#7f968b}
+.dsbanner{display:inline-block;background:var(--brand2);color:var(--brand);font-weight:700;border-radius:999px;padding:3px 12px;font-size:12.5px;margin-bottom:8px}
+.empty.big{padding:60px 20px}.empty.big h3{color:var(--ink);margin:0 0 6px}

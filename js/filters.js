@@ -8,7 +8,8 @@ const F = (() => {
   };
   const subs = [];
   let lut = null, buf1 = null, buf2 = null;
-  const persist = () => store.set('filters', { preset: st.preset, from: st.from, to: st.to, types: [...st.types], prods: [...st.prods], cities: [...st.cities], dows: [...st.dows], q: st.q });
+  let cur = 'main'; const stash = {};
+  const persist = () => store.set(cur === 'main' ? 'filters' : 'filters.' + cur, { preset: st.preset, from: st.from, to: st.to, types: [...st.types], prods: [...st.prods], cities: [...st.cities], dows: [...st.dows], q: st.q });
 
   function resolve() {                                            // names -> lookup tables for current dictionary
     const D = Store.D; if (!D) return;
@@ -47,6 +48,13 @@ const F = (() => {
     set(patch) { Object.assign(st, patch); F.changed(); },
     toggle(dim, val) { const s = st[dim]; s.has(val) ? s.delete(val) : s.add(val); F.changed(); },
     clear() { st.types.clear(); st.prods.clear(); st.cities.clear(); st.dows.clear(); st.q = ''; F.changed(); },
+    useSet(name) {                                                 // per-dataset filter state
+      if (name === cur) return; stash[cur] = F.snapshot(); cur = name;
+      const v = stash[name] || store.get('filters.' + name, { preset: '30d' });
+      st.preset = v.preset || '30d'; st.from = v.from ?? null; st.to = v.to ?? null; st.q = v.q || '';
+      for (const k of ['types', 'prods', 'cities', 'dows']) { st[k].clear(); (v[k] || []).forEach(x => st[k].add(x)); }
+      F.pruneUnknown(); resolve();
+    },
     snapshot() { return { preset: st.preset, from: st.from, to: st.to, types: [...st.types], prods: [...st.prods], cities: [...st.cities], dows: [...st.dows], q: st.q }; },
     apply(v) { st.preset = v.preset; st.from = v.from; st.to = v.to; st.q = v.q || ''; for (const k of ['types', 'prods', 'cities', 'dows']) { st[k].clear(); (v[k] || []).forEach(x => st[k].add(x)); } F.pruneUnknown(); F.changed(); },
     onChange(fn) { subs.push(fn); },

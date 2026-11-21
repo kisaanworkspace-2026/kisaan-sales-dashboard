@@ -3,6 +3,7 @@
 window.CFG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbwKPGEHNxoEj9Qzjv-8afu2krkw4tBk5VQU3cYsSTE7eXjiZBOoQnwHiCTIh8GLz5AT/exec',
   SAMPLE_URL: 'data/sample.json',
+  SAMPLE_INTERSTATE_URL: 'data/sample-interstate.json',   // optional demo file; without it the Interstate pages show an empty state
   TITLE: 'Kisaan Sales',
   CURRENCY: 'AUD',
   // fixed colours for known order types (anything new gets a palette colour automatically)

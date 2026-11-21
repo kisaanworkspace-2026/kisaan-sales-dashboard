@@ -25,3 +25,8 @@ Until `API_URL` is set the app runs in **DEMO mode** on `data/sample.json`.
 
 ## Files
 `index.html` shell · `css/app.css` · `js/` engine (`store` data layer, `filters`, `charts`, `ui`, `app`) · `js/pages/*.js` one file per page · `apps-script/Code.gs` · `tools/build_sample.py` (xlsx → sample.json) · `ROADMAP.md` (next phases)
+
+## Interstate sales
+Add a tab named **Interstate** (same 12 columns) to the Google Sheet and paste interstate sales there. The "Interstate sales" group in the sidebar then shows Overview, Orders, Products, Stores and Cities for those stores only, with their own filters. If there is no such tab, rows matching the interstate cities/store names listed in `apps-script/Code.gs` (`INTERSTATE_CITIES`, `INTERSTATE_NAMES`) are split out of the main tab automatically, and are excluded from the main pages.
+After updating `Code.gs` you must redeploy: Deploy > Manage deployments > edit > New version.
+
