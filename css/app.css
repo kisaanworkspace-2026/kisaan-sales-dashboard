@@ -69,3 +69,7 @@ td{border-bottom:1px solid var(--soft);font-variant-numeric:tabular-nums}.r{text
 .kpi .kv{overflow:hidden;text-overflow:ellipsis}
 h4{margin:16px 0 6px;font-size:13px;color:var(--mut)}
 .heat th{font-size:11px;white-space:normal;line-height:1.2;max-width:84px}.heat td.hc{font-size:12px;border-radius:0}
+.tcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}.tcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--pc);border-radius:14px;box-shadow:var(--sh);padding:13px 15px}
+.tc-h{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:12.5px}.tcard .kv{font-size:26px;font-weight:700;margin:6px 0}.tc-g{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:8px 0}.tc-g div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:3px}.tc-g span{color:var(--mut);font-size:12px}
+.stackcol{display:flex;flex-direction:column-reverse;overflow:hidden}.stackcol div{width:100%}
+.cal{display:grid;grid-auto-rows:20px;gap:3px;width:max-content}.cc{border-radius:3px;cursor:pointer;min-height:14px}.cc.z{background:var(--soft)}.cc:hover{outline:2px solid var(--ink)}.cal .cl,.cal .cm{font-size:11px;color:var(--mut);line-height:20px}
