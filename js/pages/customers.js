@@ -78,5 +78,6 @@ Pages.customers = (() => {
       UI.card('Inactive customers (at risk)', els.risk, { span: 8, sub: 'Ordered 2+ times ever, none lately · all-time data · click for history', tools: els.seg }),
       UI.card('All active customers', els.tbl, { span: 12, sub: 'Click a row for order history and favourite products' })));
   }
+  UI.openCustomer = openCustomer;
   return { title: 'Customers', mount, update };
 })();

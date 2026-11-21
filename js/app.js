@@ -5,7 +5,7 @@ const NAV = [
   { id: 'orders', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10' , line: true },
   { id: 'products', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
   { id: 'customers', title: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
-  { id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true, soon: 'Soon' },
+  { id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
   { id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true, soon: 'Soon' }
 ];
 const App = (() => {
