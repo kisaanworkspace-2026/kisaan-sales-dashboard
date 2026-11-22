@@ -31,7 +31,7 @@ const App = (() => {
     dateBar = h('div', { class: 'datebar' }, h('div', { class: 'seg' }, preset('7d', '7D'), preset('30d', '30D'), preset('90d', '90D'), preset('mtd', 'MTD'), preset('all', 'All')), dFrom, h('span', null, '→'), dTo);
     dateBar._in = [dFrom, dTo]; dateBar._avail = h('span', { class: 'avail' }); dateBar.append(dateBar._avail);
     const sl = (label, key, list, fmt) => UI.slicer({ label, selected: S[key], options: list.map((v, i) => ({ value: key === 'dows' ? i : v, label: fmt ? fmt(v) : v })).sort((a, b) => key === 'dows' ? a.value - b.value : a.label.localeCompare(b.label)), onToggle: v => F.toggle(key, v), onClear: () => { S[key].clear(); F.changed(); } });
-    slicers = [sl('Order type', 'types', D.dict.type, t => t.toUpperCase()), sl('Product', 'prods', D.dict.prod), sl('City', 'cities', D.dict.city, c => c || '(unknown)'), sl('Weekday', 'dows', DOW)];
+    slicers = [sl('Order type', 'types', D.dict.type, t => t.toUpperCase()), sl('Product', 'prods', D.dict.prod), sl('City', 'cities', D.dict.city, c => c || '(unknown)'), ...(D.hasST ? [sl('Store type', 'stypes', D.stAll)] : []), sl('Weekday', 'dows', DOW)];
     const q = h('input', { type: 'search', class: 'custq', placeholder: 'Customer / phone…', value: S.q, oninput: e => { clearTimeout(q._t); q._t = setTimeout(() => F.set({ q: e.target.value }), 180); } });
     chips = h('div', { class: 'chips' });
     const views = h('div', { class: 'slicer' }), vb = h('button', { class: 'sbtn', type: 'button' }, h('span', null, 'Saved views'), h('i', { class: 'chev' })); let vp = null;
@@ -56,7 +56,7 @@ const App = (() => {
     dateBar._avail.textContent = `Data available: ${dLong(D.minDay)} – ${dLong(D.maxDay)}`;
     slicers.forEach(x => x.refresh());
     const mk = (label, set, fmt, key) => [...set].map(v => h('span', { class: 'chip' }, label + ': ', h('b', null, fmt ? fmt(v) : v), h('button', { type: 'button', 'aria-label': 'Remove', onclick: () => F.toggle(key, v) }, '✕')));
-    chips.replaceChildren(...mk('Type', S.types, t => t.toUpperCase(), 'types'), ...mk('Product', S.prods, null, 'prods'), ...mk('City', S.cities, c => c || '(unknown)', 'cities'), ...mk('Day', S.dows, d => DOW[d], 'dows'));
+    chips.replaceChildren(...mk('Type', S.types, t => t.toUpperCase(), 'types'), ...mk('Product', S.prods, null, 'prods'), ...mk('City', S.cities, c => c || '(unknown)', 'cities'), ...mk('Day', S.dows, d => DOW[d], 'dows'), ...mk('Store type', S.stypes, null, 'stypes'));
     chips.style.display = chips.children.length ? '' : 'none';
   }
 

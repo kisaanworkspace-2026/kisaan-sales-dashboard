@@ -30,3 +30,6 @@ Until `API_URL` is set the app runs in **DEMO mode** on `data/sample.json`.
 Add a tab named **Interstate** (same 12 columns) to the Google Sheet and paste interstate sales there. The "Interstate sales" group in the sidebar then shows Overview, Orders, Products, Stores and Cities for those stores only, with their own filters. If there is no such tab, rows matching the interstate cities/store names listed in `apps-script/Code.gs` (`INTERSTATE_CITIES`, `INTERSTATE_NAMES`) are split out of the main tab automatically, and are excluded from the main pages.
 After updating `Code.gs` you must redeploy: Deploy > Manage deployments > edit > New version.
 
+## Store types
+Add a tab named **StoreTypes** to the Google Sheet and paste your store list there with the same 3 columns as the Excel file: `bus_name | city | code_value`. Stores are matched to sales by name (`shipping_name` = `bus_name`, ignoring case/extra spaces); unmatched stores show as "Unmapped". A "Store type" filter then appears in the filter bar and on the B2B Stores page (click a type to see its revenue, trend, products, cities and stores everywhere). The bundled demo data already contains your 417-store list.
+

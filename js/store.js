@@ -63,6 +63,10 @@ const Store = (() => {
     D.custSearch = D.custLabel.map((l, i) => (l + ' ' + D.custPhone[i]).toLowerCase());
     D.cFirst = new Int32Array(nc).fill(1e9); D.cLast = new Int32Array(nc).fill(-1e9); D.cOrders = new Int32Array(nc);
     for (let k = 0; k < no; k++) { const c = D.oCust[k], d = D.oDay[k]; if (d < D.cFirst[c]) D.cFirst[c] = d; if (d > D.cLast[c]) D.cLast[c] = d; D.cOrders[c]++; }
+    // store types (from the StoreTypes tab / bundled file), joined on the store name
+    const norm = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(), tmap = new Map((p.st || []).map(r => [norm(r[0]), r[1]]));
+    D.hasST = tmap.size > 0; D.stNames = [...new Set(tmap.values())].sort(); D.stAll = D.hasST ? [...D.stNames, 'Unmapped'] : [];
+    D.cTypeName = D.custName.map(nm => tmap.get(norm(nm)) || 'Unmapped'); D.cST = Int16Array.from(D.cTypeName, x => D.stAll.indexOf(x));
     // stable colours per order type
     D.typeColor = p.dict.type.map((t, i) => CFG.TYPE_COLORS[t] || CFG.PALETTE[(i + 4) % CFG.PALETTE.length]);
     return D;

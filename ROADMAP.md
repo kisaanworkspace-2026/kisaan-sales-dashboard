@@ -27,3 +27,6 @@ icon-192.png, icon-512.png, icon-maskable-512.png (PWA maskable), apple-touch-ic
 ## Bug-fix round 1 (DONE) – see sales-dashboard-bugs.md
 1 & 3 date swap: Code.gs auto-detects day/month swapped dates (DATE_SWAP='auto'), corrects them and reports counts; status bar warns about swapped or future-dated rows. 2 calendar now counts orders. 4 date range clamped to the sheet's first/last date, picker min/max, disabled presets, "Data available" label. 5 new page "B2B Stores" (js/pages/stores.js). Code.gs must be redeployed (new version). sw.js VERSION = ksd-v8.
 
+## Round 2 (DONE): B2B Stores page extended
+Store types (global "Store type" filter, StoreTypes tab), stores not ordering for 30/45/60/90 days, stores buying only 3-6 products with the products they are missing (popular with similar store types), revenue-over-time and top products for the selected store type. sw.js VERSION = ksd-v9. Code.gs reads the StoreTypes tab (redeploy needed).
+
