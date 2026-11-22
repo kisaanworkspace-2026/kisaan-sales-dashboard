@@ -30,7 +30,7 @@ Pages.channels = (() => {
   }
   function calendar(el, from, to, A) {
     const D = Store.D, start = Math.max(from, to - 7 * 53 + 1), w0 = weekStart(start), weeks = Math.floor((weekStart(to) - w0) / 7) + 1, nt = D.dict.type.length, nd = A.nd;
-    const val = d => { let s = 0; for (let t = 0; t < nt; t++) s += A.day[t * nd + d - from]; return s; };
+    const val = d => A.dayOrd[d - from], rev = d => { let s = 0; for (let t = 0; t < nt; t++) s += A.day[t * nd + d - from]; return s; };
     let mx = 0; for (let d = start; d <= to; d++) mx = Math.max(mx, val(d));
     const grid = h('div', { class: 'cal', style: { gridTemplateColumns: `22px repeat(${weeks}, 22px)` } });
     DOW.forEach((l, r) => grid.append(h('span', { class: 'cl', style: { gridRow: r + 2, gridColumn: 1 } }, r % 2 ? '' : l[0])));
@@ -39,7 +39,7 @@ Pages.channels = (() => {
     for (let w = 0; w < weeks; w++) for (let r = 0; r < 7; r++) {
       const d = w0 + w * 7 + r; if (d < start || d > to) continue;
       const v = val(d), cell = h('div', { class: 'cc' + (v ? '' : ' z'), style: { gridRow: r + 2, gridColumn: w + 2, background: v ? `color-mix(in srgb, var(--c1) ${Math.round(18 + v / mx * 82)}%, transparent)` : '' } });
-      cell.addEventListener('mousemove', ev => Tip.show(`<b>${DOW[r]} ${dLong(d)}</b><div class="tr">Revenue<span>${money0(v)}</span></div><div class="tr">Orders<span>${fmtInt(A.dayOrd[d - from])}</span></div>`, ev));
+      cell.addEventListener('mousemove', ev => Tip.show(`<b>${DOW[r]} ${dLong(d)}</b><div class="tr">Orders<span>${fmtInt(v)}</span></div><div class="tr dimt">Revenue<span>${money0(rev(d))}</span></div>`, ev));
       cell.addEventListener('mouseleave', Tip.hide); cell.addEventListener('click', () => { Tip.hide(); F.set({ preset: 'custom', from: d, to: d }); });
       grid.append(cell);
     }
@@ -67,7 +67,7 @@ Pages.channels = (() => {
     root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'B2B vs B2C'), els.sub), els.cards, h('div', { class: 'grid' },
       UI.card('Revenue over time by order type', h('div', null, els.time, els.legend), { span: 8 }),
       UI.card('Revenue by weekday', els.dow, { span: 4, sub: 'Stacked by order type' }),
-      UI.card('Delivery calendar', els.cal, { span: 12, sub: 'Daily revenue (darker = more) · click a day to filter the dashboard to it' })));
+      UI.card('Delivery calendar', els.cal, { span: 12, sub: 'Orders per day (darker = more orders) · click a day to filter the dashboard to it' })));
   }
   return { title: 'B2B vs B2C', mount, update };
 })();

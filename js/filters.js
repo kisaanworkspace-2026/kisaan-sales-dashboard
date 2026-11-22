@@ -22,13 +22,13 @@ const F = (() => {
   const F = {
     st,
     range() {
-      const D = Store.D, mx = D.maxDay, mn = D.minDay;
+      const D = Store.D, mx = D.maxDay, mn = D.minDay, c = (a, b) => ({ from: Math.max(mn, a), to: Math.min(mx, b) });
       switch (st.preset) {
-        case '7d': return { from: mx - 6, to: mx };
-        case '30d': return { from: mx - 29, to: mx };
-        case '90d': return { from: mx - 89, to: mx };
-        case 'mtd': return { from: monthStart(mx), to: mx };
-        case 'custom': return { from: st.from ?? mn, to: st.to ?? mx };
+        case '7d': return c(mx - 6, mx);
+        case '30d': return c(mx - 29, mx);
+        case '90d': return c(mx - 89, mx);
+        case 'mtd': return c(monthStart(mx), mx);
+        case 'custom': { const r = c(st.from ?? mn, st.to ?? mx); return r.from > r.to ? { from: mn, to: mx } : r; }
         default: return { from: mn, to: mx };
       }
     },

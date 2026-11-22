@@ -38,7 +38,7 @@ const Store = (() => {
     if (!grouped) { perm = Int32Array.from({ length: n }, (_, i) => i); perm.sort((a, b) => p.d[a] - p.d[b] || o[a] - o[b] || a - b); }
     const col = (arr, T) => { const out = new T(n); for (let i = 0; i < n; i++) out[i] = arr[perm ? perm[i] : i]; return out; };
     const D = {
-      n, ver: p.v, dict: p.dict,
+      n, ver: p.v, dict: p.dict, w: p.w || {},
       day: col(p.d, Int32Array), oid: col(p.o, Float64Array), iid: col(p.i, Float64Array), type: col(p.t, Uint8Array), prod: col(p.p, Uint16Array),
       qty: col(p.q, Int32Array), amt: col(p.a, Float64Array), cust: col(p.c, Int32Array), city: col(p.y, Uint16Array), addr: col(p.ad, Int32Array)
     };

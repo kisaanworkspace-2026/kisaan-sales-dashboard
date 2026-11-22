@@ -23,3 +23,7 @@ Rules: revenue = sum of oTotal over distinct orders touched by the mask; product
   Keep this list in one config constant (js/config.js `INTERSTATE`) so it is easy to edit; if a single combined sheet is used later, split by these rules instead.
 ## Brand assets (in /assets, use in all pages and the Phase 6 PWA)
 icon-192.png, icon-512.png, icon-maskable-512.png (PWA maskable), apple-touch-icon.png, kisaan-logo.jpg (full logo). Brand colours from the logo: forest green ~#1a4d2a and cow-brown ~#7a3515 (current UI accent is #1f7a5a; consider aligning in Phase 6).
+
+## Bug-fix round 1 (DONE) – see sales-dashboard-bugs.md
+1 & 3 date swap: Code.gs auto-detects day/month swapped dates (DATE_SWAP='auto'), corrects them and reports counts; status bar warns about swapped or future-dated rows. 2 calendar now counts orders. 4 date range clamped to the sheet's first/last date, picker min/max, disabled presets, "Data available" label. 5 new page "B2B Stores" (js/pages/stores.js). Code.gs must be redeployed (new version). sw.js VERSION = ksd-v8.
+

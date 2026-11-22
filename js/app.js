@@ -6,6 +6,7 @@ const NAV = [
   { id: 'products', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
   { id: 'customers', title: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
   { id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
+  { id: 'stores', title: 'B2B Stores', icon: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6', line: true },
   { id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true },
   { group: 'Interstate sales' },
   { id: 'i-overview', page: 'overview', ds: 'interstate', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
@@ -28,7 +29,7 @@ const App = (() => {
     const dFrom = h('input', { type: 'date', onchange: e => { const v = isoDay(e.target.value); if (!isNaN(v)) F.set({ preset: 'custom', from: v, to: Math.max(v, F.range().to) }); } });
     const dTo = h('input', { type: 'date', onchange: e => { const v = isoDay(e.target.value); if (!isNaN(v)) F.set({ preset: 'custom', to: v, from: Math.min(v, F.range().from) }); } });
     dateBar = h('div', { class: 'datebar' }, h('div', { class: 'seg' }, preset('7d', '7D'), preset('30d', '30D'), preset('90d', '90D'), preset('mtd', 'MTD'), preset('all', 'All')), dFrom, h('span', null, '→'), dTo);
-    dateBar._in = [dFrom, dTo];
+    dateBar._in = [dFrom, dTo]; dateBar._avail = h('span', { class: 'avail' }); dateBar.append(dateBar._avail);
     const sl = (label, key, list, fmt) => UI.slicer({ label, selected: S[key], options: list.map((v, i) => ({ value: key === 'dows' ? i : v, label: fmt ? fmt(v) : v })).sort((a, b) => key === 'dows' ? a.value - b.value : a.label.localeCompare(b.label)), onToggle: v => F.toggle(key, v), onClear: () => { S[key].clear(); F.changed(); } });
     slicers = [sl('Order type', 'types', D.dict.type, t => t.toUpperCase()), sl('Product', 'prods', D.dict.prod), sl('City', 'cities', D.dict.city, c => c || '(unknown)'), sl('Weekday', 'dows', DOW)];
     const q = h('input', { type: 'search', class: 'custq', placeholder: 'Customer / phone…', value: S.q, oninput: e => { clearTimeout(q._t); q._t = setTimeout(() => F.set({ q: e.target.value }), 180); } });
@@ -50,6 +51,9 @@ const App = (() => {
     dateBar.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === S.preset));
     dateBar._in[0].value = dISO(from); dateBar._in[1].value = dISO(to);
     dateBar._in.forEach(i => { i.min = dISO(D.minDay); i.max = dISO(D.maxDay); });
+    const span = D.maxDay - D.minDay + 1;
+    dateBar.querySelectorAll('[data-p]').forEach(b => { const need = { '7d': 7, '30d': 30, '90d': 90 }[b.dataset.p]; const off = need && span < need; b.disabled = !!off; b.title = off ? `Sheet only has ${span} day(s) of data` : ''; b.classList.toggle('off', !!off); });
+    dateBar._avail.textContent = `Data available: ${dLong(D.minDay)} – ${dLong(D.maxDay)}`;
     slicers.forEach(x => x.refresh());
     const mk = (label, set, fmt, key) => [...set].map(v => h('span', { class: 'chip' }, label + ': ', h('b', null, fmt ? fmt(v) : v), h('button', { type: 'button', 'aria-label': 'Remove', onclick: () => F.toggle(key, v) }, '✕')));
     chips.replaceChildren(...mk('Type', S.types, t => t.toUpperCase(), 'types'), ...mk('Product', S.prods, null, 'prods'), ...mk('City', S.cities, c => c || '(unknown)', 'cities'), ...mk('Day', S.dows, d => DOW[d], 'dows'));
@@ -59,7 +63,9 @@ const App = (() => {
   function status() {
     const D = Store.D, ago = Math.max(0, Math.round((Date.now() - Store.loadedAt) / 60000));
     statusEl.replaceChildren(h('b', null, Store.mode === 'demo' ? 'DEMO DATA' : 'LIVE'), ` · ${fmtInt(D.n)} lines · ${fmtInt(D.nOrders)} orders · data to ${dLong(D.maxDay)}`, Store.mode === 'live' ? ` · synced ${ago < 1 ? 'just now' : ago + ' min ago'}` : '', ` · ${Math.round(Store.ms)} ms`);
-    statusEl.title = Store.source;
+    statusEl.title = Store.source; const w = D.w || {};
+    if (w.swapped) statusEl.append(h('span', { class: 'warn', title: 'Dates written day/month were read as month/day by Google Sheets. They were corrected automatically. Tip: File > Settings > Locale = Australia or India.' }, ` · ⚠ ${fmtInt(w.swapped)} dates auto-corrected`));
+    if (w.future) statusEl.append(h('span', { class: 'warn', title: 'These rows have a delivery date in the future; check the date column in the Sheet.' }, ` · ⚠ ${fmtInt(w.future)} rows dated in the future`));
   }
 
   async function show() {
@@ -75,7 +81,7 @@ const App = (() => {
     if (!Pages[page]) await new Promise((ok, no) => document.head.append(h('script', { src: `js/pages/${page}.js`, onload: ok, onerror: no })));
     current = Pages[page];
     if (!mounted[page] || mounted[page].D !== Store.D) { const el = h('div'); current.mount(el); mounted[page] = { D: Store.D, el }; }
-    host.replaceChildren(ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores') : null, mounted[page].el);
+    host.replaceChildren(...[ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores') : null, mounted[page].el].filter(Boolean));
     current.update();
   }
 
