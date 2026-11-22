@@ -11,17 +11,18 @@ Pages.stores = (() => {
     for (let k = 0; k < D.nOrders; k++) if (is[D.oType[k]]) { const c = D.oCust[k]; if (D.oDay[k] < f[c]) f[c] = D.oDay[k]; }
     return D._bf = f;
   }
+  const slots = D => D._slot || (D._slot = (() => { const is = b2b(D), sl = new Int32Array(D.custName.length).fill(-1); let n = 0; for (let i = 0; i < D.n; i++) if (is[D.type[i]] && sl[D.cust[i]] < 0) sl[D.cust[i]] = n++; return { sl, n }; })());
   function compute(from, to) {
-    const D = Store.D, is = b2b(D), bf = firstOrder(D), cut = D.maxDay - (NEW_DAYS - 1), sel = F.mask(from, to, 0), nc = D.custName.length, np = D.dict.prod.length, nd = to - from + 1, nst = D.stAll.length || 1;
+    const D = Store.D, is = b2b(D), bf = firstOrder(D), cut = D.maxDay - (NEW_DAYS - 1), sel = F.mask(from, to, 0), nc = D.custName.length, np = D.dict.prod.length, nd = to - from + 1, nst = D.stAll.length || 1, SL = slots(D), sl = SL.sl, ns = SL.n || 1;
     const A = { rev: new Float64Array(nc), ord: new Int32Array(nc), city: new Uint16Array(nc), cityOrd: new Int32Array(D.dict.city.length), stores: [], revNew: 0, revOld: 0, newCount: 0,
-      seen: new Uint8Array(nc * np), nProd: new Int32Array(nc), units: new Float64Array(nc * np), prodU: new Float64Array(np), pen: new Int32Array((nst + 1) * np), peers: new Int32Array(nst + 1), gpen: new Int32Array(np),
+      sl, seen: new Uint8Array(ns * np), nProd: new Int32Array(nc), units: new Float64Array(ns * np), prodU: new Float64Array(np), pen: new Int32Array((nst + 1) * np), peers: new Int32Array(nst + 1), gpen: new Int32Array(np),
       revDay: new Float64Array(nd), ordDay: new Float64Array(nd), nd };
     const seenO = new Uint8Array(D.nOrders);
     for (let i = 0; i < D.n; i++) {
       if (!sel[i] || !is[D.type[i]]) continue;
       const k = D.oi[i], c = D.cust[i], p = D.prod[i], t = D.hasST ? D.cST[c] : 0;
-      A.units[c * np + p] += D.qty[i]; A.prodU[p] += D.qty[i];
-      if (!A.seen[c * np + p]) { A.seen[c * np + p] = 1; A.nProd[c]++; A.pen[t * np + p]++; A.gpen[p]++; }
+      A.units[sl[c] * np + p] += D.qty[i]; A.prodU[p] += D.qty[i];
+      if (!A.seen[sl[c] * np + p]) { A.seen[sl[c] * np + p] = 1; A.nProd[c]++; A.pen[t * np + p]++; A.gpen[p]++; }
       if (!seenO[k]) {
         seenO[k] = 1; const v = D.oTotal[k], di = D.day[i] - from;
         if (A.ord[c] === 0) { A.stores.push(c); A.city[c] = D.oCity[k]; A.peers[t]++; if (bf[c] >= cut) A.newCount++; }
@@ -46,12 +47,12 @@ Pages.stores = (() => {
   }
   function missingFor(A, c) {                                     // popular products among similar stores that this store does not buy
     const D = Store.D, np = A.np, t = D.hasST ? D.cST[c] : 0, useType = A.peers[t] >= 5, base = useType ? A.pen.subarray(t * np, (t + 1) * np) : A.gpen, peers = useType ? A.peers[t] : A.stores.length, out = [];
-    for (let p = 0; p < np; p++) if (!A.seen[c * np + p] && base[p] / peers >= .1) out.push([p, base[p] / peers]);
+    for (let p = 0; p < np; p++) if (!A.seen[A.sl[c] * np + p] && base[p] / peers >= .1) out.push([p, base[p] / peers]);
     return out.sort((a, b) => b[1] - a[1]);
   }
   function openStore(r) {
     const D = Store.D, A = last, c = r.c, np = A.np, bought = [], miss = missingFor(A, c);
-    for (let p = 0; p < np; p++) if (A.seen[c * np + p]) bought.push([p, A.units[c * np + p]]); bought.sort((a, b) => b[1] - a[1]);
+    for (let p = 0; p < np; p++) if (A.seen[A.sl[c] * np + p]) bought.push([p, A.units[A.sl[c] * np + p]]); bought.sort((a, b) => b[1] - a[1]);
     const kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v));
     UI.drawer(D.custLabel[c], 'Phone ' + D.custPhone[c], h('div', null,
       h('div', { class: 'kvs' }, kv('Store type', typeName(D, c) || '—'), kv('City', D.dict.city[A.city[c]] || '—'), kv('Orders in period', fmtInt(A.ord[c])), kv('Revenue in period', money0(A.rev[c])), kv('Different products bought', bought.length)),
@@ -63,6 +64,9 @@ Pages.stores = (() => {
     UI.drawer(D.custLabel[e.c], 'Phone ' + D.custPhone[e.c], h('div', { class: 'kvs' }, kv('Store type', typeName(D, e.c) || '—'), kv('City', D.dict.city[e.city] || '—'), kv('Last order', dLong(e.last)), kv('Days since last order', D.maxDay - e.last), kv('Typical gap between orders', gapAvg == null ? '—' : gapAvg + ' days'), kv('Orders (all time)', fmtInt(e.n)), kv('Revenue (all time)', money0(e.rev))));
   }
   function update() {
+    try { update2(); } catch (e) { console.error(e); els.kpis.replaceChildren(h('div', { class: 'warn' }, 'B2B Stores could not be built: ' + (e && e.message || e))); }
+  }
+  function update2() {
     const D = Store.D, { from, to } = F.range(), A = last = compute(from, to), bf = firstOrder(D), nd = to - from + 1, np = A.np;
     els.sub.textContent = `${dLong(from)} – ${dLong(to)}` + (F.isActive() ? ' · filtered' : '');
     const lapsed = A.lapsedAll.filter(e => D.maxDay - e.last >= lapseGap).sort((a, b) => b.rev - a.rev);
@@ -115,7 +119,7 @@ Pages.stores = (() => {
       { label: 'Store', get: r => D.custLabel[r.c], cls: () => 'strong', val: r => D.custLabel[r.c] }, ...(D.hasST ? [{ label: 'Type', get: r => T(r.c), val: r => T(r.c) }] : []), { label: 'City', get: r => D.dict.city[last.city[r.c]], val: r => D.dict.city[last.city[r.c]] },
       { label: 'Items', align: 'r', get: r => last.nProd[r.c], val: r => last.nProd[r.c] }, { label: 'Orders', align: 'r', get: r => fmtInt(last.ord[r.c]), val: r => last.ord[r.c] },
       { label: 'Revenue', align: 'r', get: r => money0(last.rev[r.c]), val: r => last.rev[r.c], csv: r => last.rev[r.c].toFixed(2) },
-      { label: 'Buys now', get: r => { const o = []; for (let p = 0; p < last.np; p++) if (last.seen[r.c * last.np + p]) o.push(D.dict.prod[p]); return o.join(', '); }, cls: () => 'wrap' },
+      { label: 'Buys now', get: r => { const o = []; for (let p = 0; p < last.np; p++) if (last.seen[last.sl[r.c] * last.np + p]) o.push(D.dict.prod[p]); return o.join(', '); }, cls: () => 'wrap' },
       { label: 'Could also sell (share of similar stores)', get: miss, csv: miss, cls: () => 'wrap' }] });
     root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'B2B Stores'), els.sub), els.kpis, h('div', { class: 'grid' },
       UI.card('Store types', els.types, { span: 4, sub: 'B2B revenue · click a type to see its performance everywhere' }),
