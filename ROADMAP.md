@@ -42,3 +42,8 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - store.js: PIN prompt + saved on device, customer dictionary [id, name, phone, phones]. stores.js groups by user id (name merging removed).
 - Verified on Sale_Data_01-04-26_to_25-11-26.xlsx: main revenue 10,243,639.77 / 52,350 orders / 4,785 customers; interstate 1,189,271.28 / 159 orders; total equals the xlsx total.
 - Next: Phase 9 (B2B Stores page), see project doc sales-dashboard-next-phases.
+
+## Phase 9 done (25 Nov 2026) - B2B Stores page
+- New card "All B2B stores" (343 stores in the test data): search, sort, CSV, status badge (Active / New / Not ordering), view buttons Ordered in period / New / Not ordering / All stores. The 5 KPI cards are clickable and jump to this card with the matching view.
+- "Not ordering" now uses the whole Sheet history and ANY order type; date, city, product, weekday and order-type filters do not touch it (only Store type and customer search do). Checked against pandas on the xlsx: 343 stores, 55 at 30d, 50 at 45d - identical.
+- Rows open the store drawer; Phase 10 replaces it with the full store profile page.

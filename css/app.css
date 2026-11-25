@@ -92,3 +92,7 @@ td.wrap{white-space:normal;min-width:200px;max-width:380px;font-size:12.5px;colo
 .pinbox img{width:72px;height:72px;border-radius:16px}.pinbox h3{margin:4px 0}.pinbox p{margin:0;opacity:.75}
 .pinbox input{width:220px;padding:10px 12px;border-radius:8px;border:1px solid var(--line,#2c4a38);background:var(--card,#16261d);color:inherit;font-size:16px;text-align:center}
 .pinbox button{padding:9px 28px;border-radius:8px;border:0;background:var(--c1,#1d6b3b);color:#fff;font-size:15px;cursor:pointer}.pinerr{color:#e5534b;min-height:18px;font-size:13px}
+
+.kpi.clickable{cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s}.kpi.clickable:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 4px 16px rgba(20,60,40,.18)}
+.card.flash{animation:cflash 1.4s ease}@keyframes cflash{0%,60%{box-shadow:0 0 0 3px var(--brand)}100%{box-shadow:var(--sh)}}
+.sbadge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}.sbadge.ok{background:var(--brand2);color:var(--good)}.sbadge.new{background:rgba(240,185,61,.18);color:var(--c3)}.sbadge.bad{background:rgba(239,107,121,.16);color:var(--bad)}

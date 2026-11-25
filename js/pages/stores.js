@@ -3,7 +3,7 @@
    New store = first order (any type) within the last 60 days of data. Lapsed = no B2B order for N days. Low variety = buys only a few distinct products. */
 Pages.stores = (() => {
   const NEW_DAYS = 60;
-  let els = {}, last = null, lapseGap = store.get('lapse', 45), maxItems = store.get('maxitems', 4);
+  let els = {}, last = null, statusF = store.get('storestatus', 'period'), lapseGap = store.get('lapse', 45), maxItems = store.get('maxitems', 4);
   const b2b = D => D._b2b || (D._b2b = D.dict.type.map(t => t.toLowerCase() === 'b2b'));
   const typeName = (D, c) => D.hasST ? groups(D).tname[c] : '';
   function firstOrder(D) {
@@ -46,13 +46,12 @@ Pages.stores = (() => {
       const s2 = F.mask(from, to, 1, true), seen2 = new Uint8Array(D.nOrders); A.tRev = new Float64Array(nst); A.tOrd = new Int32Array(nst); A.tStores = new Int32Array(nst); const sc = new Uint8Array(nc);
       for (let i = 0; i < D.n; i++) { if (!s2[i] || !is[D.type[i]]) continue; const k = D.oi[i], c = GR.g[D.cust[i]], t = GR.st[c]; if (!seen2[k]) { seen2[k] = 1; A.tRev[t] += D.oTotal[k]; A.tOrd[t]++; if (!sc[c]) { sc[c] = 1; A.tStores[t]++; } } }
     }
-    // lapsed: whole history (other filters still apply)
-    // Same shop can have several phone numbers and can also order under another order type, so group by shop name and count any recent order.
-    const G = GR, s3 = F.mask(D.minDay, D.maxDay, 1), seen3 = new Uint8Array(D.nOrders), L = new Map();
-    for (let i = 0; i < D.n; i++) {
-      if (!s3[i]) continue; const k = D.oi[i], g = G.g[D.cust[i]]; if (!G.b2b[g] || seen3[k]) continue; seen3[k] = 1;
+    // every B2B store, whole history, ANY order type, NO date / city / product / weekday filters: last order must be the real last order in the Sheet
+    const G = GR, L = new Map();
+    for (let k = 0; k < D.nOrders; k++) {
+      const g = G.g[D.oCust[k]]; if (!G.b2b[g]) continue;
       const e = L.get(g) || L.set(g, { c: g, last: -1e9, first: 1e9, n: 0, rev: 0, city: 0 }).get(g);
-      e.n++; e.rev += D.oTotal[k]; if (D.oDay[k] > e.last) { e.last = D.oDay[k]; e.city = D.oCity[k]; } if (D.oDay[k] < e.first) e.first = D.oDay[k];
+      e.n++; e.rev += D.oTotal[k]; if (D.oDay[k] >= e.last) { e.last = D.oDay[k]; e.city = D.oCity[k]; } if (D.oDay[k] < e.first) e.first = D.oDay[k];
     }
     A.lapsedAll = [...L.values()]; return A;
   }
@@ -80,10 +79,23 @@ Pages.stores = (() => {
   function update2() {
     const D = Store.D, { from, to } = F.range(), A = last = compute(from, to), bf = firstOrder(D), nd = to - from + 1, np = A.np;
     els.sub.textContent = `${dLong(from)} – ${dLong(to)}` + (F.isActive() ? ' · filtered' : '');
-    const lapsed = A.lapsedAll.filter(e => D.maxDay - e.last >= lapseGap).sort((a, b) => b.rev - a.rev);
-    els.kpis.replaceChildren(UI.kpi({ label: 'Total B2B stores', value: fmtInt(A.stores.length), hint: 'ordered in period' }), UI.kpi({ label: 'Total revenue', value: money0(A.total), hint: 'new + existing stores' }),
-      UI.kpi({ label: 'Revenue – new stores only', value: money0(A.revNew), hint: A.total ? pct(A.revNew / A.total, 0) + ' of revenue' : '' }), UI.kpi({ label: 'New stores', value: fmtInt(A.newCount), hint: 'first order since ' + dLong(A.cut) }),
-      UI.kpi({ label: `Not ordered ${lapseGap}+ days`, value: fmtInt(lapsed.length), hint: money0(lapsed.reduce((s, e) => s + e.rev, 0)) + ' all-time revenue' }));
+    const GR = groups(D), qq = F.st.q.trim().toLowerCase(), pass = g => (!F.st.stypes.size || F.st.stypes.has(GR.tname[g])) && (!qq || GR.search[g].includes(qq));
+    const base = A.lapsedAll.filter(e => pass(e.c));                                   // store-level filters only (store type, customer search)
+    const lapsed = base.filter(e => D.maxDay - e.last >= lapseGap).sort((a, b) => b.rev - a.rev);
+    const newCut = A.cut, kp = (o, tip, fn) => { const k = UI.kpi(o); k.classList.add('clickable'); k.title = tip; k.onclick = fn; return k; };
+    const goList = st => { statusF = st; store.set('storestatus', st); update(); els.listCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); els.listCard.classList.remove('flash'); void els.listCard.offsetWidth; els.listCard.classList.add('flash'); };
+    const status = e => D.maxDay - e.last >= lapseGap ? 'Not ordering' : bf[e.c] >= newCut ? 'New' : 'Active';
+    const rowsAll = base.map(e => ({ e, c: e.c, st: status(e), po: A.ord[e.c], pr: A.rev[e.c] }));
+    const rowsList = rowsAll.filter(x => statusF === 'all' ? true : statusF === 'period' ? x.po > 0 : statusF === 'new' ? bf[x.c] >= newCut && x.po > 0 : x.st === 'Not ordering').sort((a, b) => b.pr - a.pr || b.e.rev - a.e.rev);
+    els.list.update(rowsList);
+    [...els.statusSeg.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.v === statusF));
+    els.listSub.textContent = { period: 'Stores that placed at least one B2B order in the selected period', new: 'Stores whose first order is in the last ' + NEW_DAYS + ' days of data', lapsed: 'Stores with no order for ' + lapseGap + '+ days (any order type, whole history)', all: 'Every B2B store in the Sheet, including stores with no order in the period' }[statusF] + ' · ' + fmtInt(rowsList.length) + ' stores';
+    els.kpis.replaceChildren(
+      kp({ label: 'Total B2B stores', value: fmtInt(A.stores.length), hint: 'ordered in period' }, 'Click to list the stores that ordered in this period', () => goList('period')),
+      kp({ label: 'Total revenue', value: money0(A.total), hint: 'new + existing stores' }, 'Click to list these stores sorted by revenue', () => goList('period')),
+      kp({ label: 'Revenue – new stores only', value: money0(A.revNew), hint: A.total ? pct(A.revNew / A.total, 0) + ' of revenue' : '' }, 'Click to list the new stores', () => goList('new')),
+      kp({ label: 'New stores', value: fmtInt(A.newCount), hint: 'first order since ' + dLong(A.cut) }, 'Click to list the new stores', () => goList('new')),
+      kp({ label: `Not ordered ${lapseGap}+ days`, value: fmtInt(lapsed.length), hint: money0(lapsed.reduce((s, e) => s + e.rev, 0)) + ' all-time revenue' }, 'Click to list the stores that stopped ordering', () => goList('lapsed')));
     // store types
     if (D.hasST) {
       const ids = Array.from({ length: D.stAll.length }, (_, t) => t).filter(t => A.tRev[t] > 0).sort((a, b) => A.tRev[b] - A.tRev[a]);
@@ -116,6 +128,15 @@ Pages.stores = (() => {
     els.sub = h('span'); els.kpis = h('div', { class: 'kpis k5' }); els.types = h('div'); els.trend = h('div'); els.mix = h('div'); els.opened = h('div'); els.city = h('div'); els.prod = h('div'); els.warm = h('div', { class: 'note' }); els.lowSub = h('span');
     els.lapseSeg = seg([30, 45, 60, 90], lapseGap, v => { lapseGap = v; store.set('lapse', v); }, 'd'); els.itemSeg = seg([3, 4, 5, 6], maxItems, v => { maxItems = v; store.set('maxitems', v); }, '');
     const T = c => typeName(D, c), sr = { placeholder: 'Search store…', text: c => groups(D).search[c] };
+    els.listSub = h('span'); els.statusSeg = h('div', { class: 'seg' }, [['period', 'Ordered in period'], ['new', 'New'], ['lapsed', 'Not ordering'], ['all', 'All stores']].map(([v, t]) => h('button', { type: 'button', 'data-v': v, onclick: () => { statusF = v; store.set('storestatus', v); update(); } }, t)));
+    const badge = x => h('span', { class: 'sbadge ' + (x.st === 'Not ordering' ? 'bad' : x.st === 'New' ? 'new' : 'ok') }, x.st), dY = d => dShort(d) + ' ' + dt(d).getUTCFullYear();
+    els.list = UI.table({ pageSize: 25, rows: [], onRow: x => openLapsed(x.e), csvName: 'b2b-stores.csv', search: { placeholder: 'Search store or phone…', text: x => groups(D).search[x.c] }, cols: [
+      { label: 'Store', get: x => groups(D).label[x.c], cls: () => 'strong', val: x => groups(D).label[x.c] }, ...(D.hasST ? [{ label: 'Type', get: x => T(x.c), val: x => T(x.c) }] : []), { label: 'City', get: x => D.dict.city[x.e.city], val: x => D.dict.city[x.e.city] },
+      { label: 'First order', get: x => dY(x.e.first), val: x => x.e.first, csv: x => dISO(x.e.first) }, { label: 'Last order', get: x => dY(x.e.last), val: x => x.e.last, csv: x => dISO(x.e.last) },
+      { label: 'Days since', align: 'r', get: x => D.maxDay - x.e.last, val: x => D.maxDay - x.e.last },
+      { label: 'Orders (period)', align: 'r', get: x => fmtInt(x.po), val: x => x.po }, { label: 'Revenue (period)', align: 'r', get: x => money0(x.pr), val: x => x.pr, csv: x => x.pr.toFixed(2) },
+      { label: 'Avg order', align: 'r', get: x => x.po ? money0(x.pr / x.po) : '—', val: x => x.po ? x.pr / x.po : 0, csv: x => x.po ? (x.pr / x.po).toFixed(2) : '' },
+      { label: 'Orders (all time)', align: 'r', get: x => fmtInt(x.e.n), val: x => x.e.n }, { label: 'Status', get: badge, val: x => x.st, csv: x => x.st }] });
     els.tbl = UI.table({ pageSize: 10, rows: [], csvName: 'new-stores.csv', search: sr, cols: [
       { label: 'Store', get: c => groups(D).label[c], cls: () => 'strong' }, ...(D.hasST ? [{ label: 'Type', get: T }] : []), { label: 'City', get: c => D.dict.city[last.city[c]] },
       { label: 'First order', get: c => dShort(bf()[c]), val: c => bf()[c], csv: c => dISO(bf()[c]) }, { label: 'Orders', align: 'r', get: c => fmtInt(last.ord[c]), val: c => last.ord[c] },
@@ -132,7 +153,8 @@ Pages.stores = (() => {
       { label: 'Revenue', align: 'r', get: r => money0(last.rev[r.c]), val: r => last.rev[r.c], csv: r => last.rev[r.c].toFixed(2) },
       { label: 'Buys now', get: r => { const o = []; for (let p = 0; p < last.np; p++) if (last.seen[last.sl[r.c] * last.np + p]) o.push(D.dict.prod[p]); return o.join(', '); }, cls: () => 'wrap' },
       { label: 'Could also sell (share of similar stores)', get: miss, csv: miss, cls: () => 'wrap' }] });
-    root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'B2B Stores'), els.sub), els.kpis, h('div', { class: 'grid' },
+    els.listCard = UI.card('All B2B stores', els.list, { span: 12, sub: els.listSub, tools: els.statusSeg });
+    root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'B2B Stores'), els.sub), els.kpis, h('div', { class: 'grid' }, els.listCard,
       UI.card('Store types', els.types, { span: 4, sub: 'B2B revenue · click a type to see its performance everywhere' }),
       UI.card('Revenue over time', els.trend, { span: 8, sub: 'Follows the selected store type, dates and filters' }),
       UI.card('New stores opened', els.opened, { span: 7, sub: 'Stores by date of their first B2B order' }),
