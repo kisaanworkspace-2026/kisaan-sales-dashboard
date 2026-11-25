@@ -30,3 +30,9 @@ icon-192.png, icon-512.png, icon-maskable-512.png (PWA maskable), apple-touch-ic
 ## Round 2 (DONE): B2B Stores page extended
 Store types (global "Store type" filter, StoreTypes tab), stores not ordering for 30/45/60/90 days, stores buying only 3-6 products with the products they are missing (popular with similar store types), revenue-over-time and top products for the selected store type. sw.js VERSION = ksd-v9. Code.gs reads the StoreTypes tab (redeploy needed).
 
+
+## Audit round (23 Nov 2026) - customer identity
+- Problem: a shop ordering from several phone numbers counted as several customers (store counts, new stores, lapsed list, low-variety list all wrong).
+- Fix (store.js decode): customers with at least one B2B order are merged by shop NAME; everyone else stays one customer per phone. Revenue totals are unchanged by this (checked: same totals before/after).
+- Lapsed list counts ANY order type from the shop. Orders page / order drawer still show the phone actually used on that order (D.rawPhone/D.rawCust).
+- B2B page memory: per-store tables sized by B2B stores only; page shows a red message instead of blank if it ever fails.

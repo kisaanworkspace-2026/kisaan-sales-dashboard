@@ -33,7 +33,7 @@ Pages.customers = (() => {
     ord.sort((a, b) => D.oDay[b] - D.oDay[a]);
     const mix = [...pm].sort((a, b) => b[1] - a[1]).slice(0, 8), a0 = D.oStart[ord[0]], kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v));
     const gapAvg = D.cOrders[c] > 1 ? Math.round((D.cLast[c] - D.cFirst[c]) / (D.cOrders[c] - 1)) : null;
-    UI.drawer(D.custLabel[c], 'Phone ' + D.custPhone[c], h('div', null,
+    UI.drawer(D.custLabel[c], 'Phone ' + D.custPhonesAll[c].join(', '), h('div', null,
       h('div', { class: 'kvs' }, kv('Address', (D.dict.addr[D.addr[a0]] + ', ' + D.dict.city[D.oCity[ord[0]]]).replace(/^, /, '')), kv('Lifetime revenue', money0(L[c])), kv('Orders', fmtInt(D.cOrders[c])), kv('First / last order', dLong(D.cFirst[c]) + ' / ' + dLong(D.cLast[c])), kv('Days since last order', D.maxDay - D.cLast[c]), kv('Typical gap between orders', gapAvg == null ? '—' : gapAvg + ' days')),
       h('h4', null, 'Favourite products (units)'), h('table', { class: 'lines' }, h('tbody', null, mix.map(([p, u]) => h('tr', null, h('td', null, D.dict.prod[p]), h('td', { class: 'r' }, fmtInt(u)))))),
       h('h4', null, 'Order history'), h('table', { class: 'lines' }, h('tbody', null, ord.slice(0, 60).map(k => h('tr', { class: 'click', onclick: () => UI.openOrder(k) }, h('td', null, dShort(D.oDay[k])), h('td', null, D.oId[k]), h('td', { class: 'r' }, money2(D.oTotal[k]))))))));
@@ -65,7 +65,7 @@ Pages.customers = (() => {
       { label: 'Days ago', align: 'r', get: age, val: age }, { label: 'Usual gap', align: 'r', get: c => Math.round((D.cLast[c] - D.cFirst[c]) / (D.cOrders[c] - 1)) + 'd', val: c => (D.cLast[c] - D.cFirst[c]) / (D.cOrders[c] - 1) }] });
     const kind = c => D.cFirst[c] >= F.range().from ? 'New' : 'Returning';
     els.tbl = UI.table({ pageSize: 15, rows: [], onRow: openCustomer, csvName: 'customers.csv', search: sr, cols: [
-      { label: 'Customer', get: c => D.custLabel[c], cls: () => 'strong' }, { label: 'Phone', get: c => D.custPhone[c] },
+      { label: 'Customer', get: c => D.custLabel[c], cls: () => 'strong' }, { label: 'Phone', get: c => D.custPhonesAll[c].join(', ') },
       { label: 'Status', get: c => h('span', { class: 'pill', style: { '--pc': kind(c) === 'New' ? 'var(--c3)' : 'var(--c1)' } }, kind(c)), val: kind, csv: kind },
       { label: 'Orders', align: 'r', get: c => last.ord[c], val: c => last.ord[c] }, { label: 'Units', align: 'r', get: c => fmtInt(last.units[c]), val: c => last.units[c] },
       { label: 'Revenue', align: 'r', get: c => money0(last.rev[c]), val: c => last.rev[c], csv: c => last.rev[c].toFixed(2) },

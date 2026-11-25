@@ -30,6 +30,15 @@ const Store = (() => {
 
   /** Turn the columnar payload into typed arrays + order/customer tables. */
   function decode(p) {
+    // One shop can order from several phone numbers. Customers that have at least one B2B order are merged by shop NAME
+    // (so "customers", store counts, new / lapsed stores are right); everyone else stays one customer per phone number.
+    const rawList = p.dict.cust, rawC = p.c, normN = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const b2bT = new Set(); p.dict.type.forEach((t, i) => { if (String(t).trim().toLowerCase() === 'b2b') b2bT.add(i); });
+    const isShop = new Uint8Array(rawList.length); for (let i = 0; i < p.n; i++) if (b2bT.has(p.t[i])) isShop[rawC[i]] = 1;
+    const gm = new Map(), remap = new Int32Array(rawList.length), nl = [];
+    rawList.forEach((c, i) => { const nm = normN(c[1]), key = isShop[i] && nm ? 'n:' + nm : 'p:' + i; let g = gm.get(key); if (g === undefined) { g = nl.length; gm.set(key, g); nl.push([c[0], c[1], [String(c[0])]]); } else nl[g][2].push(String(c[0])); remap[i] = g; });
+    p = Object.assign({}, p, { c: Array.from(rawC, x => remap[x]), dict: Object.assign({}, p.dict, { cust: nl.map(c => [c[0], c[1]]) }) });
+    const phonesAll = nl.map(c => c[2]);
     const n = p.n, o = Int32Array.from(p.o);
     // make sure all lines of one order are adjacent (server sorts, this is a safety net)
     let grouped = true; const seen = new Set();
@@ -40,7 +49,7 @@ const Store = (() => {
     const D = {
       n, ver: p.v, dict: p.dict, w: p.w || {},
       day: col(p.d, Int32Array), oid: col(p.o, Float64Array), iid: col(p.i, Float64Array), type: col(p.t, Uint8Array), prod: col(p.p, Uint16Array),
-      qty: col(p.q, Int32Array), amt: col(p.a, Float64Array), cust: col(p.c, Int32Array), city: col(p.y, Uint16Array), addr: col(p.ad, Int32Array)
+      qty: col(p.q, Int32Array), amt: col(p.a, Float64Array), cust: col(p.c, Int32Array), rawCust: col(rawC, Int32Array), city: col(p.y, Uint16Array), addr: col(p.ad, Int32Array)
     };
     const oi = D.oi = new Int32Array(n);
     let no = 0;
@@ -59,8 +68,9 @@ const Store = (() => {
     // customers
     const nc = p.dict.cust.length;
     D.custName = p.dict.cust.map(c => c[1] || ''); D.custPhone = p.dict.cust.map(c => c[0]);
+    D.rawPhone = rawList.map(c => c[0]); D.custPhonesAll = phonesAll;
     D.custLabel = D.custName.map((nm, i) => nm || ('Customer ' + D.custPhone[i]));
-    D.custSearch = D.custLabel.map((l, i) => (l + ' ' + D.custPhone[i]).toLowerCase());
+    D.custSearch = D.custLabel.map((l, i) => (l + ' ' + phonesAll[i].join(' ')).toLowerCase());
     D.cFirst = new Int32Array(nc).fill(1e9); D.cLast = new Int32Array(nc).fill(-1e9); D.cOrders = new Int32Array(nc);
     for (let k = 0; k < no; k++) { const c = D.oCust[k], d = D.oDay[k]; if (d < D.cFirst[c]) D.cFirst[c] = d; if (d > D.cLast[c]) D.cLast[c] = d; D.cOrders[c]++; }
     // store types (from the StoreTypes tab / bundled file), joined on the store name

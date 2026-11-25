@@ -113,7 +113,7 @@ UI.openOrder = k => {
   const lines = []; for (let i = a; i < b; i++) lines.push(i);
   const kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v));
   UI.drawer('Order #' + D.oId[k], dLong(D.oDay[k]), h('div', null,
-    h('div', { class: 'kvs' }, kv('Customer', D.custLabel[c]), kv('Phone', D.custPhone[c]), kv('Type', UI.pill(D.dict.type[D.oType[k]], D.oType[k])), kv('Address', (D.dict.addr[D.addr[a]] + ', ' + D.dict.city[D.oCity[k]]).replace(/^, /, '')), kv('Order total', money2(D.oTotal[k]))),
+    h('div', { class: 'kvs' }, kv('Customer', D.custLabel[c]), kv('Phone', D.rawPhone[D.rawCust[a]]), kv('Type', UI.pill(D.dict.type[D.oType[k]], D.oType[k])), kv('Address', (D.dict.addr[D.addr[a]] + ', ' + D.dict.city[D.oCity[k]]).replace(/^, /, '')), kv('Order total', money2(D.oTotal[k]))),
     h('table', { class: 'lines' }, h('thead', null, h('tr', null, h('th', null, 'Product'), h('th', { class: 'r' }, 'Qty'))),
       h('tbody', null, lines.map(i => h('tr', null, h('td', null, D.dict.prod[D.prod[i]]), h('td', { class: 'r' }, D.qty[i])))), h('tfoot', null, h('tr', null, h('td', null, 'Total units'), h('td', { class: 'r' }, fmtInt(D.oUnits[k])))))));
 };
