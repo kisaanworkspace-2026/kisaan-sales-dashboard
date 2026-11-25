@@ -21,24 +21,26 @@ const Store = (() => {
     const stream = new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'));
     return JSON.parse(await new Response(stream).text());
   }
+  const PIN_KEY = 'ksd_pin', getPin = () => { try { return localStorage.getItem(PIN_KEY) || ''; } catch (e) { return ''; } }, setPin = v => { try { v ? localStorage.setItem(PIN_KEY, v) : localStorage.removeItem(PIN_KEY); } catch (e) { } };
   async function api(params) {
-    const r = await fetch(CFG.API_URL + (CFG.API_URL.includes('?') ? '&' : '?') + params, { redirect: 'follow' });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error);
-    return j;
+    for (let tries = 0; ; tries++) {
+      const pin = getPin(), r = await fetch(CFG.API_URL + (CFG.API_URL.includes('?') ? '&' : '?') + params + '&k=' + encodeURIComponent(pin), { redirect: 'follow' });
+      const j = await r.json();
+      if (j.error === 'auth' || j.error === 'locked') {
+        setPin('');
+        if (!S.askPin || tries > 5) throw new Error(j.error === 'locked' ? 'Too many wrong PINs - try again in 10 minutes' : 'PIN required');
+        const np = await S.askPin(j.error === 'locked' ? 'Too many wrong PINs. Try again in 10 minutes.' : (pin ? 'Wrong PIN, try again.' : ''));
+        if (np == null) throw new Error('PIN required'); setPin(String(np).trim()); continue;
+      }
+      if (j.error) throw new Error(j.error);
+      return j;
+    }
   }
 
   /** Turn the columnar payload into typed arrays + order/customer tables. */
   function decode(p) {
-    // One shop can order from several phone numbers. Customers that have at least one B2B order are merged by shop NAME
-    // (so "customers", store counts, new / lapsed stores are right); everyone else stays one customer per phone number.
-    const rawList = p.dict.cust, rawC = p.c, normN = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const b2bT = new Set(); p.dict.type.forEach((t, i) => { if (String(t).trim().toLowerCase() === 'b2b') b2bT.add(i); });
-    const isShop = new Uint8Array(rawList.length); for (let i = 0; i < p.n; i++) if (b2bT.has(p.t[i])) isShop[rawC[i]] = 1;
-    const gm = new Map(), remap = new Int32Array(rawList.length), nl = [];
-    rawList.forEach((c, i) => { const nm = normN(c[1]), key = isShop[i] && nm ? 'n:' + nm : 'p:' + i; let g = gm.get(key); if (g === undefined) { g = nl.length; gm.set(key, g); nl.push([c[0], c[1], [String(c[0])]]); } else nl[g][2].push(String(c[0])); remap[i] = g; });
-    p = Object.assign({}, p, { c: Array.from(rawC, x => remap[x]), dict: Object.assign({}, p.dict, { cust: nl.map(c => [c[0], c[1]]) }) });
-    const phonesAll = nl.map(c => c[2]);
+    // customer = source_user_id; dictionary entry = [id, name, main phone, phones[]]
+    const rawList = p.dict.cust, rawC = p.c, phonesAll = rawList.map(c => (c[3] && c[3].length) ? c[3].map(String) : [String(c[2] || '')]);
     const n = p.n, o = Int32Array.from(p.o);
     // make sure all lines of one order are adjacent (server sorts, this is a safety net)
     let grouped = true; const seen = new Set();
@@ -67,9 +69,9 @@ const Store = (() => {
     for (let i = 0; i < n; i++) { if (D.day[i] < D.minDay) D.minDay = D.day[i]; if (D.day[i] > D.maxDay) D.maxDay = D.day[i]; }
     // customers
     const nc = p.dict.cust.length;
-    D.custName = p.dict.cust.map(c => c[1] || ''); D.custPhone = p.dict.cust.map(c => c[0]);
-    D.rawPhone = rawList.map(c => c[0]); D.custPhonesAll = phonesAll;
-    D.custLabel = D.custName.map((nm, i) => nm || ('Customer ' + D.custPhone[i]));
+    D.custName = p.dict.cust.map(c => c[1] || ''); D.custPhone = p.dict.cust.map(c => c[2] || '');
+    D.rawPhone = rawList.map(c => c[2] || ''); D.custPhonesAll = phonesAll; D.custId = rawList.map(c => String(c[0])); D.meta = p.meta || null;
+    D.custLabel = D.custName.map((nm, i) => nm || ('Customer ' + (D.custPhone[i] || D.custId[i])));
     D.custSearch = D.custLabel.map((l, i) => (l + ' ' + phonesAll[i].join(' ')).toLowerCase());
     D.cFirst = new Int32Array(nc).fill(1e9); D.cLast = new Int32Array(nc).fill(-1e9); D.cOrders = new Int32Array(nc);
     for (let k = 0; k < no; k++) { const c = D.oCust[k], d = D.oDay[k]; if (d < D.cFirst[c]) D.cFirst[c] = d; if (d > D.cLast[c]) D.cLast[c] = d; D.cOrders[c]++; }

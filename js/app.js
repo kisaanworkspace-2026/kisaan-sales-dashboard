@@ -63,7 +63,14 @@ const App = (() => {
   function status() {
     const D = Store.D, ago = Math.max(0, Math.round((Date.now() - Store.loadedAt) / 60000));
     statusEl.replaceChildren(h('b', null, Store.mode === 'demo' ? 'DEMO DATA' : 'LIVE'), ` · ${fmtInt(D.n)} lines · ${fmtInt(D.nOrders)} orders · data to ${dLong(D.maxDay)}`, Store.mode === 'live' ? ` · synced ${ago < 1 ? 'just now' : ago + ' min ago'}` : '', ` · ${Math.round(Store.ms)} ms`);
-    statusEl.title = Store.source; const w = D.w || {};
+    statusEl.title = Store.source; const w = D.w || {}, m = D.meta;
+    if (m && m.rows) {
+      statusEl.append(` · ${fmtInt(m.rows)} of ${fmtInt(m.sheetRows)} sheet rows · ${dShort(m.min)} to ${dShort(m.max)}`);
+      let prev = 0; try { prev = +localStorage.getItem('ksd_rows_' + Store.name) || 0; } catch (e) { }
+      if (m.rows < prev) statusEl.append(h('span', { class: 'warn', title: 'The previous load had ' + fmtInt(prev) + ' rows. If rows were not deleted on purpose, check the Google Sheet.' }, ` · ⚠ ${fmtInt(prev - m.rows)} fewer rows than last time`));
+      try { localStorage.setItem('ksd_rows_' + Store.name, String(Math.max(m.rows, 0))); } catch (e) { }
+    }
+    if (m && m.sheetRows > m.rows + (w.skipped || 0) + 0 && w.skipped) statusEl.append(h('span', { class: 'warn', title: 'Rows with a missing order id or an unreadable date are skipped. Check the Sheet.' }, ` · ⚠ ${fmtInt(w.skipped)} rows skipped`));
     if (w.swapped) statusEl.append(h('span', { class: 'warn', title: 'Dates written day/month were read as month/day by Google Sheets. They were corrected automatically. Tip: File > Settings > Locale = Australia or India.' }, ` · ⚠ ${fmtInt(w.swapped)} dates auto-corrected`));
     if (w.future) statusEl.append(h('span', { class: 'warn', title: 'These rows have a delivery date in the future; check the date column in the Sheet.' }, ` · ⚠ ${fmtInt(w.future)} rows dated in the future`));
   }
@@ -77,7 +84,7 @@ const App = (() => {
       F.useSet(ds); buildFilters(); status(); sp.classList.add('gone');
     }
     const host = $('#page');
-    if (!Store.D.n) { host.replaceChildren(h('div', { class: 'empty big' }, h('h3', null, 'No ' + ds + ' data yet'), h('p', null, 'Add a tab named "Interstate" to the Google Sheet (same 12 columns) and paste the interstate sales there, then press refresh.'))); return; }
+    if (!Store.D.n) { host.replaceChildren(h('div', { class: 'empty big' }, h('h3', null, 'No ' + ds + ' data yet'), h('p', null, 'Add a tab named "Interstate" to the Google Sheet (same columns) and paste the interstate sales there, then press refresh.'))); return; }
     if (!Pages[page]) await new Promise((ok, no) => document.head.append(h('script', { src: `js/pages/${page}.js`, onload: ok, onerror: no })));
     current = Pages[page];
     if (!mounted[page] || mounted[page].D !== Store.D) { const el = h('div'); current.mount(el); mounted[page] = { D: Store.D, el }; }
@@ -90,9 +97,14 @@ const App = (() => {
   return {
     async start() {
       const splash = $('#splash');
+      Store.askPin = msg => new Promise(res => {                        // access PIN (kept on this device only)
+        const inp = h('input', { type: 'password', placeholder: 'Access PIN', autocomplete: 'current-password' }), err = h('div', { class: 'pinerr' }, msg || ''), box = h('form', { class: 'pinbox', onsubmit: e => { e.preventDefault(); if (!inp.value.trim()) return; box.remove(); res(inp.value); } },
+          h('img', { src: 'assets/icon-192.png', alt: '' }), h('h3', null, 'Kisaan Sales Dashboard'), h('p', null, 'Enter the access PIN to open the dashboard.'), inp, err, h('button', { type: 'submit' }, 'Open'));
+        document.body.append(box); setTimeout(() => inp.focus(), 50);
+      });
       try {
         await Store.init(t => splash.querySelector('p').textContent = t);
-      } catch (e) { splash.querySelector('p').textContent = 'Could not load data: ' + e.message + '. Check API_URL in js/config.js and that the Web App is deployed for "Anyone".'; console.error(e); return; }
+      } catch (e) { splash.querySelector('p').textContent = 'Could not load data: ' + e.message + '. If this keeps happening check API_URL in js/config.js and that the Web App is deployed.'; console.error(e); return; }
       buildNav(); buildFilters(); statusEl = $('#status'); status();
       F.onChange(rerender);
       Store.onData((D, first) => { mounted = {}; buildFilters(); status(); show(); toast('Data updated'); });

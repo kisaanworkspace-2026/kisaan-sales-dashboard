@@ -1,5 +1,5 @@
 /* Page: B2B Stores. Store = shop with at least one B2B order.
-   A store is identified by its NAME (a shop can have several phone numbers); shops with no name fall back to the phone number.
+   A store is identified by its source_user_id (one id per shop, whatever phone or spelling is used).
    New store = first order (any type) within the last 60 days of data. Lapsed = no B2B order for N days. Low variety = buys only a few distinct products. */
 Pages.stores = (() => {
   const NEW_DAYS = 60;
@@ -15,7 +15,7 @@ Pages.stores = (() => {
   const slots = D => D._slot || (D._slot = (() => { const is = b2b(D), G = groups(D), sl = new Int32Array(G.n).fill(-1); let n = 0; for (let i = 0; i < D.n; i++) { const q = G.g[D.cust[i]]; if (is[D.type[i]] && sl[q] < 0) sl[q] = n++; } return { sl, n }; })());
   const groups = D => D._grp || (D._grp = (() => {
     const is = b2b(D), m = new Map(), nc = D.custName.length, g = new Int32Array(nc), norm = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    for (let c = 0; c < nc; c++) { const nm = norm(D.custName[c]), key = nm || 'ph' + D.custPhone[c]; g[c] = m.has(key) ? m.get(key) : (m.set(key, m.size), m.size - 1); }
+    for (let c = 0; c < nc; c++) { const key = D.custId[c]; g[c] = m.has(key) ? m.get(key) : (m.set(key, m.size), m.size - 1); }
     const n = m.size, first = new Int32Array(n).fill(-1), phones = Array.from({ length: n }, () => []);
     for (let c = 0; c < nc; c++) { const q = g[c]; if (first[q] < 0) first[q] = c; phones[q].push(...D.custPhonesAll[c]); }
     const b = new Uint8Array(n); for (let i = 0; i < D.n; i++) if (is[D.type[i]]) b[g[D.cust[i]]] = 1;

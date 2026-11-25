@@ -16,7 +16,7 @@ Rules: revenue = sum of oTotal over distinct orders touched by the mask; product
 - **4 Cities (DONE)**: city ranking table, revenue/orders/customers per city, city × product heat matrix.
 - **5 B2B vs B2C (DONE)**: side-by-side KPIs, avg order value, weekday pattern, delivery calendar heatmap.
 - **6 Polish (DONE: saved views, daily target line, insights strip, print, PWA manifest + sw.js, brand colours; sw.js VERSION must be bumped on each release)**: saved filter views, targets/goals line, print/PDF view, installable PWA (manifest + service worker), anomaly highlights (e.g. big drop vs last week).
-- **7 Interstate Sales (DONE: sidebar group 'Interstate sales' reuses Overview/Orders/Products/Stores/Cities on a second dataset; Code.gs ?tab=interstate reads the 'Interstate' tab, or splits rows out of the main tab by the rules below if no such tab; per-dataset filters; empty state when no data. All phases complete.)**: the main sales export EXCLUDES interstate stores, so this page needs its own Google Sheet tab (same 12 columns) and a second API payload (`?a=data&tab=interstate`, own cache key + IndexedDB key); reuse the same engine and page pattern.
+- **7 Interstate Sales (DONE: sidebar group 'Interstate sales' reuses Overview/Orders/Products/Stores/Cities on a second dataset; Code.gs ?tab=interstate reads the 'Interstate' tab, or splits rows out of the main tab by the rules below if no such tab; per-dataset filters; empty state when no data. All phases complete.)**: the main sales export EXCLUDES interstate stores, so this page needs its own Google Sheet tab (same columns) and a second API payload (`?a=data&tab=interstate`, own cache key + IndexedDB key); reuse the same engine and page pattern.
   Interstate = rows matching EITHER rule (the main export's SQL is `AND o.shipping_city NOT IN (...) AND o.shipping_name NOT IN (...)`):
   - shipping_city in: Salisbury Plain, Bahrs Scrub, Seven Hills, New Town, Mowbray, Corio, Geelong, Armstrong Creek, Grovedale, Belmont, Charlemont, Norlane, Moolap, Drumcondra, Sebastopol, Lavington, Wodonga
   - shipping_name in: Sip N Shop Indian Mart Mildura, Nice Indian Store Mildura
@@ -36,3 +36,9 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - Fix (store.js decode): customers with at least one B2B order are merged by shop NAME; everyone else stays one customer per phone. Revenue totals are unchanged by this (checked: same totals before/after).
 - Lapsed list counts ANY order type from the shop. Orders page / order drawer still show the phone actually used on that order (D.rawPhone/D.rawCust).
 - B2B page memory: per-store tables sized by B2B stores only; page shows a red message instead of blank if it ever fails.
+
+## Phase 8 done (25 Nov 2026)
+- Code.gs rewritten: all columns by header, source_user_id key, interstate by named stores + user id, PIN check on every call, meta (row counts, first/last date, skipped rows).
+- store.js: PIN prompt + saved on device, customer dictionary [id, name, phone, phones]. stores.js groups by user id (name merging removed).
+- Verified on Sale_Data_01-04-26_to_25-11-26.xlsx: main revenue 10,243,639.77 / 52,350 orders / 4,785 customers; interstate 1,189,271.28 / 159 orders; total equals the xlsx total.
+- Next: Phase 9 (B2B Stores page), see project doc sales-dashboard-next-phases.

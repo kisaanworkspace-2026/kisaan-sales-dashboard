@@ -87,3 +87,8 @@ h4{margin:16px 0 6px;font-size:13px;color:var(--mut)}
 .datebar input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
 .kpis.k4{grid-template-columns:repeat(4,1fr)}.note{color:var(--mut);font-size:12px;margin-top:8px}
 td.wrap{white-space:normal;min-width:200px;max-width:380px;font-size:12.5px;color:var(--mut)}.tl{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12px}
+
+.pinbox{position:fixed;inset:0;z-index:2000;background:var(--bg,#0f1a14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px}
+.pinbox img{width:72px;height:72px;border-radius:16px}.pinbox h3{margin:4px 0}.pinbox p{margin:0;opacity:.75}
+.pinbox input{width:220px;padding:10px 12px;border-radius:8px;border:1px solid var(--line,#2c4a38);background:var(--card,#16261d);color:inherit;font-size:16px;text-align:center}
+.pinbox button{padding:9px 28px;border-radius:8px;border:0;background:var(--c1,#1d6b3b);color:#fff;font-size:15px;cursor:pointer}.pinerr{color:#e5534b;min-height:18px;font-size:13px}

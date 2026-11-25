@@ -3,7 +3,7 @@
 Interactive desktop dashboard (Power-BI style) on **Google Sheet → Apps Script → GitHub Pages**. No build step, no libraries, no cost.
 
 ## Daily use
-1. Open the Google Sheet, clear the old rows and paste the latest export (same 12 columns, row 1 = headers).
+1. Open the Google Sheet, clear the old rows and paste the latest export (same columns, row 1 = headers).
 2. Open the dashboard. It shows instantly from its local copy, checks the sheet in the background and updates itself if the data changed. The ⟳ button forces a full re-download.
 
 ## One-time setup (≈10 min)
@@ -27,9 +27,18 @@ Until `API_URL` is set the app runs in **DEMO mode** on `data/sample.json`.
 `index.html` shell · `css/app.css` · `js/` engine (`store` data layer, `filters`, `charts`, `ui`, `app`) · `js/pages/*.js` one file per page · `apps-script/Code.gs` · `tools/build_sample.py` (xlsx → sample.json) · `ROADMAP.md` (next phases)
 
 ## Interstate sales
-Add a tab named **Interstate** (same 12 columns) to the Google Sheet and paste interstate sales there. The "Interstate sales" group in the sidebar then shows Overview, Orders, Products, Stores and Cities for those stores only, with their own filters. If there is no such tab, rows matching the interstate cities/store names listed in `apps-script/Code.gs` (`INTERSTATE_CITIES`, `INTERSTATE_NAMES`) are split out of the main tab automatically, and are excluded from the main pages.
+Add a tab named **Interstate** (same columns) to the Google Sheet and paste interstate sales there. The "Interstate sales" group in the sidebar then shows Overview, Orders, Products, Stores and Cities for those stores only, with their own filters. If there is no such tab, rows matching the interstate cities/store names listed in `apps-script/Code.gs` (`INTERSTATE_CITIES`, `INTERSTATE_NAMES`) are split out of the main tab automatically, and are excluded from the main pages.
 After updating `Code.gs` you must redeploy: Deploy > Manage deployments > edit > New version.
 
 ## Store types
 Add a tab named **StoreTypes** to the Google Sheet and paste your store list there with the same 3 columns as the Excel file: `bus_name | city | code_value`. Stores are matched to sales by name (`shipping_name` = `bus_name`, ignoring case/extra spaces); unmatched stores show as "Unmapped". A "Store type" filter then appears in the filter bar and on the B2B Stores page (click a type to see its revenue, trend, products, cities and stores everywhere). The bundled demo data already contains your 417-store list.
 
+
+
+## Phase 8 (25 Nov 2026): user id, interstate list, PIN
+- The Sheet now has 13 columns; the first is `source_user_id`. Columns are found by header name, so order does not matter, but all 13 headers must exist.
+- **Customer = source_user_id.** Name shown = most common name for that id; phone shown = most common phone.
+- **Interstate stores** (edit INTERSTATE_STORES in Code.gs): Divyaa Imports Adelaide, Saanjh Foods Brisbane, Conscious Choice Imports Sydney, The Spice House Launceston, The Spice House Hobart, The Spice House. All rows of the same user id follow. Every other store is regional (main data). The old city rule is gone.
+- **PIN (required):** Apps Script > Project Settings > Script Properties > add `PIN` = your code. Redeploy as a NEW version. The page asks for the PIN once per device. Without the Script Property the API refuses to answer. 10 wrong PINs lock it for 10 minutes. Sheet sharing must stay Restricted. If the URL or PIN leaks, change the PIN (and make a new deployment).
+- The demo files in `data/` are anonymised (fake names, phones, ids, addresses). Rebuild them with `tools/build_sample.py`; never put the real export in the repo.
+- Status line shows rows loaded of Sheet rows, first and last date, and warns if fewer rows than last time or if rows were skipped.
