@@ -1,8 +1,35 @@
 /* Reusable UI building blocks: cards, KPI tiles, slicers (dropdown filters), tables, drawer */
+/* ---- help tooltips: text lives in js/help.js (Help object). Key = slug of the label (digits become n), optionally prefixed by the page id: 'stores.new-stores' wins over 'new-stores'. ---- */
+const HelpUI = (() => {
+  const slug = t => String(t || '').toLowerCase().replace(/[0-9]+/g, 'n').replace(/[^a-z]+/g, '-').replace(/^-+|-+$/g, '');
+  let pop = null, owner = null, touchAt = 0;
+  const find = (label, key) => { const k = key || slug(label), H = typeof Help !== 'undefined' ? Help : {}; return H[(UI.page || '') + '.' + k] || H[k] || null; };
+  const hide = () => { if (pop) { pop.remove(); pop = null; owner = null; } };
+  const show = (btn, label, hp) => {
+    if (owner === btn) return; hide(); owner = btn;
+    pop = h('div', { class: 'htip', role: 'tooltip' }, h('b', null, label), h('p', null, hp.purpose), hp.calc ? h('p', { class: 'hcalc' }, h('em', null, 'How it is calculated: '), hp.calc) : null);
+    document.body.append(pop);
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth, ph = pop.offsetHeight, pad = 8;
+    let x = Math.min(Math.max(pad, r.left + r.width / 2 - w / 2), innerWidth - w - pad), y = r.bottom + 8; if (y + ph > innerHeight - pad) y = Math.max(pad, r.top - ph - 8);
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+  document.addEventListener('touchstart', e => { touchAt = Date.now(); if (owner && !owner.contains(e.target)) hide(); }, true);
+  document.addEventListener('mousedown', e => { if (owner && !owner.contains(e.target)) hide(); }, true);
+  addEventListener('scroll', hide, true); addEventListener('resize', hide);
+  return { slug, find, info(label, kind, key) {
+    const hp = find(label, key); (UI._seen = UI._seen || new Map()).set(kind + '|' + (UI.page || '') + '|' + label, !!hp);
+    if (!hp) return null;
+    const b = h('button', { type: 'button', class: 'info', 'aria-label': 'About ' + label, onmouseenter: () => show(b, label, hp), onmouseleave: () => { if (Date.now() - touchAt > 1500) hide(); }, onfocus: () => show(b, label, hp), onblur: hide,
+      onclick: e => { e.stopPropagation(); e.preventDefault(); show(b, label, hp); } }, 'i');
+    return b;
+  } };
+})();
 const UI = {
+  info: (label, kind, key) => HelpUI.info(label, kind || 'other', key),
   card(title, body, { span = 4, sub, tools, cls = '' } = {}) {
     return h('section', { class: 'card ' + cls, style: { gridColumn: `span ${span}` } },
-      h('header', null, h('div', null, h('h3', null, title), sub ? h('p', null, sub) : null), tools || null), body);
+      h('header', null, h('div', null, h('h3', null, title, HelpUI.info(title, 'card')), sub ? h('p', null, sub) : null), tools || null), body);
   },
 
   kpi({ label, value, delta, deltaGood = 'up', spark, hint, color }) {
@@ -11,7 +38,7 @@ const UI = {
       const up = delta >= 0, good = (deltaGood === 'up') === up;
       d = h('span', { class: 'delta ' + (Math.abs(delta) < .0005 ? 'flat' : good ? 'good' : 'bad') }, (up ? '▲ ' : '▼ ') + pct(Math.abs(delta)), h('em', null, ' vs prev'));
     } else d = h('span', { class: 'delta flat' }, hint || '—');
-    return h('div', { class: 'kpi' }, h('div', { class: 'kl' }, label), h('div', { class: 'kv' }, value), h('div', { class: 'kf' }, d, spark ? Charts.spark(spark, color) : null));
+    return h('div', { class: 'kpi' }, h('div', { class: 'kl' }, label, HelpUI.info(label, 'kpi')), h('div', { class: 'kv' }, value), h('div', { class: 'kf' }, d, spark ? Charts.spark(spark, color) : null));
   },
 
   /** Power-BI-style slicer: button + searchable checkbox list. */
@@ -55,7 +82,7 @@ const UI = {
     }
     function draw() {
       const pages = Math.max(1, Math.ceil(view.length / pageSize)); page = Math.min(page, pages - 1);
-      const t = h('table', null, h('thead', null, h('tr', null, cols.map((c, i) => h('th', { class: (c.align || '') + (i === sortC ? ' sorted' : ''), onclick: () => { dir = sortC === i ? -dir : (c.align === 'r' ? -1 : 1); sortC = i; run(); } }, c.label, i === sortC ? (dir > 0 ? ' ▲' : ' ▼') : '')))),
+      const t = h('table', null, h('thead', null, h('tr', null, cols.map((c, i) => h('th', { class: (c.align || '') + (i === sortC ? ' sorted' : ''), onclick: () => { dir = sortC === i ? -dir : (c.align === 'r' ? -1 : 1); sortC = i; run(); } }, c.label, HelpUI.info(c.label, 'column', c.help), i === sortC ? (dir > 0 ? ' ▲' : ' ▼') : '')))),
         h('tbody', null, view.slice(page * pageSize, (page + 1) * pageSize).map(r => h('tr', { class: onRow ? 'click' : '', onclick: onRow ? () => onRow(r, view) : null }, cols.map(c => h('td', { class: (c.align || '') + (c.cls ? ' ' + c.cls(r) : '') }, c.get(r)))))));
       wrap.replaceChildren(t);
       foot.replaceChildren(h('span', null, `${fmtInt(view.length)} rows`), h('span', { class: 'spacer' }),

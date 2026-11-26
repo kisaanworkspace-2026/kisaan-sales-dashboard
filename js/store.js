@@ -15,6 +15,7 @@ const Store = (() => {
   const idbGet = async k => { const db = await idb(); if (!db) return null; return new Promise(r => { try { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); } catch (e) { r(null); } }); };
   const idbSet = async (k, v) => { const db = await idb(); if (!db) return; try { db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) { } };
 
+  const prog = async (t, pct) => { S.onProgress && S.onProgress(t, pct); await new Promise(res => setTimeout(res, 0)); };   // lets the page paint each step
   async function gunzipB64(b64) {
     const bin = atob(b64), u = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
@@ -107,8 +108,9 @@ const Store = (() => {
     },
     async pullSet(name, force) {
       if (!force && S.sets[name]) { const { v } = await api('a=ver&tab=' + name); if (v === S.sets[name].ver) return S.sets[name]; }
-      const r = await api('a=data&tab=' + name + (force ? '&force=1' : '')), p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
-      idbSet('payload_' + name, p); const D = decode(p); S.sets[name] = D; S.loadedAt = Date.now();
+      await prog('Downloading from Google Sheet…', 10); const r = await api('a=data&tab=' + name + (force ? '&force=1' : ''));
+      await prog('Unzipping…', 65); const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
+      await prog('Building tables…', 85); idbSet('payload_' + name, p); const D = decode(p); S.sets[name] = D; S.loadedAt = Date.now();
       if (S.name === name) { S.D = D; S.emit(false); }
       return D;
     },
@@ -136,9 +138,9 @@ const Store = (() => {
       if (!CFG.API_URL) return false;
       const t0 = performance.now();
       if (!force && S.D) { const { v } = await api('a=ver'); if (v === S.D.ver) { S.checkedAt = Date.now(); S.emitStatus && S.emitStatus(); return false; } }
-      const r = await api('a=data' + (force ? '&force=1' : ''));
-      const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
-      idbSet('payload', p);
+      await prog('Downloading from Google Sheet…', 10); const r = await api('a=data' + (force ? '&force=1' : ''));
+      await prog('Unzipping…', 65); const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
+      await prog('Building tables…', 85); idbSet('payload', p);
       const first = !S.D, nd = decode(p); S.sets.main = nd;
       if (S.name !== 'main') return true;
       S.D = nd; S.source = 'Live from Google Sheet'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;

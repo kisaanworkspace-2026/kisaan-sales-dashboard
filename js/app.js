@@ -1,26 +1,66 @@
 /* App shell: navigation, filter bar, status, routing. */
 const Pages = {};
+/** Sidebar model: each page belongs to a group (hierarchy). `ds` = data set, `page` = page module when the id differs. */
+const NAV_GROUPS = [
+  { name: 'Sales', icon: 'M4 20V10M10 20V4M16 20v-8M2 20h20' }, { name: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0' }, { name: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8' },
+  { name: 'Geography', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z' }, { name: 'Channels', icon: 'M4 7h14l-3-3M20 17H6l3 3' }, { name: 'Interstate sales', icon: 'M2 12l20-8-8 20-3-9z' }];
 const NAV = [
-  { id: 'overview', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
-  { id: 'orders', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10' , line: true },
-  { id: 'products', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
-  { id: 'customers', title: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
-  { id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
-  { id: 'stores', title: 'B2B Stores', icon: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6', line: true },
-  { id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true },
-  { group: 'Interstate sales' },
-  { id: 'i-overview', page: 'overview', ds: 'interstate', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
-  { id: 'i-orders', page: 'orders', ds: 'interstate', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10', line: true },
-  { id: 'i-products', page: 'products', ds: 'interstate', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
-  { id: 'i-customers', page: 'customers', ds: 'interstate', title: 'Stores', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
-  { id: 'i-cities', page: 'geography', ds: 'interstate', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
+  { grp: 'Sales', id: 'overview', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
+  { grp: 'Sales', id: 'orders', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10', line: true },
+  { grp: 'Customers', id: 'customers', title: 'Customers', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
+  { grp: 'Customers', id: 'stores', title: 'B2B Stores', icon: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6', line: true },
+  { grp: 'Products', id: 'products', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
+  { grp: 'Geography', id: 'geography', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
+  { grp: 'Channels', id: 'channels', title: 'B2B vs B2C', icon: 'M7 7h13M7 12h13M7 17h13M3 7h.01M3 12h.01M3 17h.01', line: true },
+  { grp: 'Interstate sales', id: 'i-overview', page: 'overview', ds: 'interstate', title: 'Overview', icon: 'M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z' },
+  { grp: 'Interstate sales', id: 'i-orders', page: 'orders', ds: 'interstate', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10', line: true },
+  { grp: 'Interstate sales', id: 'i-products', page: 'products', ds: 'interstate', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
+  { grp: 'Interstate sales', id: 'i-customers', page: 'customers', ds: 'interstate', title: 'Stores', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
+  { grp: 'Interstate sales', id: 'i-cities', page: 'geography', ds: 'interstate', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
 ];
 const App = (() => {
   let current = null, mounted = {}, slicers = [], chips, dateBar, statusEl;
   const icon = (d, line) => s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, fill: line ? 'none' : 'currentColor', stroke: line ? 'currentColor' : 'none', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, s('path', { d }));
 
+  const chev = () => s('svg', { viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 'chev' }, s('path', { d: 'M6 9l6 6 6-6' }));
   function buildNav() {
-    $('#nav').replaceChildren(...NAV.map(n => n.group ? h('div', { class: 'navgroup' }, n.group) : h('a', { href: n.soon ? null : '#/' + n.id, class: 'nav' + (n.soon ? ' soon' : ''), 'data-id': n.id, title: n.soon ? n.title + ' – coming in a later phase' : n.title }, icon(n.icon, n.line), h('span', null, n.title), n.soon ? h('em', null, n.soon) : null)));
+    $('#nav').replaceChildren(...NAV_GROUPS.map(g => {
+      const items = NAV.filter(n => n.grp === g.name), open = store.get('grp_' + g.name, true);
+      const el = h('div', { class: 'ngrp' + (open ? ' open' : ''), 'data-g': g.name },
+        h('button', { type: 'button', class: 'ghead', 'aria-expanded': String(open), 'data-label': g.name, onclick: () => { const o = el.classList.toggle('open'); store.set('grp_' + g.name, o); el.querySelector('.ghead').setAttribute('aria-expanded', String(o)); } }, icon(g.icon, true), h('span', null, g.name), chev()),
+        h('div', { class: 'gitems' }, h('div', { class: 'gtitle' }, g.name), ...items.map(n => h('a', { href: '#/' + n.id, class: 'nav', 'data-id': n.id, 'data-label': n.title, title: g.name + ' › ' + n.title }, icon(n.icon, n.line), h('span', null, n.title)))));
+      return el;
+    }));
+  }
+  function markNav(id) {
+    document.querySelectorAll('.nav').forEach(a => a.classList.toggle('on', a.dataset.id === id));
+    document.querySelectorAll('.ngrp').forEach(g => { const on = !!g.querySelector('.nav.on'); g.classList.toggle('has-on', on); if (on) g.classList.add('open'); });
+  }
+  /** Refresh button: spinner, staged progress (download > unzip > build), disabled while running, result message with Retry. */
+  let refreshing = false, creep = null, hideT = null;
+  async function doRefresh(e) {
+    if (e && e.preventDefault) e.preventDefault(); if (refreshing) return;
+    const b = $('#refresh'), box = $('#rbox'), set = (t, p) => { $('#rlabel').textContent = t; $('#rpct').textContent = p == null ? '' : Math.round(p) + '%'; $('#rbar').style.width = (p || 0) + '%'; };
+    const show = (cls, label, pctVis, retry) => { clearTimeout(hideT); box.hidden = false; box.className = 'rbox ' + cls; $('#rbarw').style.display = pctVis ? '' : 'none'; $('#rpct').style.display = pctVis ? '' : 'none'; $('#rretry').hidden = !retry; $('#rclose').hidden = pctVis; $('#rlabel').textContent = label; };
+    refreshing = true; b.disabled = true; b.classList.add('spin'); b.setAttribute('aria-busy', 'true'); const t0 = performance.now(); show('run', 'Checking…', true); set('Checking…', 3);
+    Store.onProgress = (t, p) => { clearInterval(creep); set(t, p); if (p === 10) { let v = 10; creep = setInterval(() => { v = Math.min(58, v + (58 - v) * .06); set(t, v); }, 250); } };   // server time is unknown: creep towards 58% while waiting
+    try {
+      if (!CFG.API_URL) { show('ok', 'Demo data – nothing to refresh from a Google Sheet', false); hideT = setTimeout(() => box.hidden = true, 5000); }
+      else {
+        if (Store.name === 'main') await Store.refresh(true); else await Store.pullSet(Store.name, true);
+        clearInterval(creep); set('Done', 100); await new Promise(r => setTimeout(r, 250));
+        show('ok', `✓ Updated · ${fmtInt(Store.D.n)} rows · ${((performance.now() - t0) / 1000).toFixed(1)} s`, false); hideT = setTimeout(() => box.hidden = true, 6000);
+      }
+    } catch (err) { clearInterval(creep); show('err', '✕ Refresh failed: ' + (err && err.message || err), false, true); }
+    Store.onProgress = null; refreshing = false; b.disabled = false; b.classList.remove('spin'); b.removeAttribute('aria-busy'); status();
+  }
+  function initShell() {
+    $('#rretry').addEventListener('click', doRefresh); $('#rclose').addEventListener('click', () => $('#rbox').hidden = true);                                              // collapse toggle (desktop) and slide-over menu (mobile)
+    const rail = v => { document.body.classList.toggle('rail', v); store.set('rail', v); const b = $('#railbtn'); b.setAttribute('aria-label', v ? 'Expand sidebar' : 'Collapse sidebar'); b.title = v ? 'Expand sidebar' : 'Collapse sidebar'; };
+    rail(!!store.get('rail', false)); $('#railbtn').addEventListener('click', () => rail(!document.body.classList.contains('rail')));
+    const menu = v => document.body.classList.toggle('menu-open', v);
+    $('#menubtn').addEventListener('click', () => menu(!document.body.classList.contains('menu-open'))); $('#sback').addEventListener('click', () => menu(false));
+    window.addEventListener('hashchange', () => menu(false)); document.addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); });
   }
 
   function buildFilters() {
@@ -82,17 +122,17 @@ const App = (() => {
     F.useSet(ds); buildFilters(); status(); sp.classList.add('gone'); return true;
   }
   async function showStore(ds, id) {
-    document.querySelectorAll('.nav').forEach(a => a.classList.remove('on')); document.body.classList.add('noflt'); UI.closeDrawer();
+    markNav(''); document.body.classList.add('noflt'); UI.closeDrawer();
     if (!await ensureDs(ds)) return;
     if (!Pages.profile) await new Promise((ok, no) => document.head.append(h('script', { src: 'js/pages/profile.js', onload: ok, onerror: no })));
-    current = Pages.profile; Pages.profile.render($('#page'), id); window.scrollTo(0, 0);
+    UI.page = 'profile'; current = Pages.profile; Pages.profile.render($('#page'), id); window.scrollTo(0, 0);
   }
   async function show() {
     const sm = location.hash.match(/^#\/store\/(i-)?([^/?]+)/);
     if (sm) return showStore(sm[1] ? 'interstate' : 'main', decodeURIComponent(sm[2]));
     document.body.classList.remove('noflt');
     const id = (location.hash.match(/^#\/([\w-]+)/) || [, 'overview'])[1], nav = NAV.find(n => n.id === id && !n.soon && !n.group) || NAV[0], ds = nav.ds || 'main', page = nav.page || nav.id;
-    document.querySelectorAll('.nav').forEach(a => a.classList.toggle('on', a.dataset.id === nav.id));
+    markNav(nav.id); UI.page = nav.page || nav.id;
     if (Store.name !== ds) {
       const sp = $('#splash'); sp.classList.remove('gone'); sp.querySelector('p').textContent = 'Loading ' + ds + ' data…';
       try { await Store.use(ds); } catch (e) { sp.querySelector('p').textContent = 'Could not load ' + ds + ' data: ' + e.message; return; }
@@ -120,11 +160,11 @@ const App = (() => {
       try {
         await Store.init(t => splash.querySelector('p').textContent = t);
       } catch (e) { splash.querySelector('p').textContent = 'Could not load data: ' + e.message + '. If this keeps happening check API_URL in js/config.js and that the Web App is deployed.'; console.error(e); return; }
-      buildNav(); buildFilters(); statusEl = $('#status'); status();
+      buildNav(); initShell(); buildFilters(); statusEl = $('#status'); status();
       F.onChange(rerender);
       Store.onData((D, first) => { mounted = {}; buildFilters(); status(); show(); toast('Data updated'); });
       window.addEventListener('hashchange', show);
-      $('#refresh').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('spin'); try { if (Store.name === 'main') { const ch = await Store.refresh(true); if (!ch) toast('Already up to date'); } else await Store.pullSet(Store.name, true); } catch (err) { toast('Refresh failed: ' + err.message); } b.classList.remove('spin'); status(); });
+      $('#refresh').addEventListener('click', doRefresh);
       $('#theme').addEventListener('click', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('theme', t); });
       $('#print').addEventListener('click', () => window.print());
       if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });

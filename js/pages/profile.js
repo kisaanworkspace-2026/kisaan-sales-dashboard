@@ -78,7 +78,7 @@ Pages.profile = (() => {
     never.sort((a, b) => b.share - a.share || D.dict.prod[a.p].localeCompare(D.dict.prod[b.p])); S.prod = P.rows; S.never = never; S.peers = PS; S.ideas = ideas(D, S, P, PS, never);
     els.ideas = h('div', { class: 'ideas' }, S.ideas.map(x => h('div', { class: 'idea ' + x.tone }, h('b', null, x.title), h('p', null, x.text))));
     els.fav = h('div'); els.never = UI.table({ pageSize: 10, rows: never, csvName: 'never-ordered.csv', search: { placeholder: 'Search product…', text: x => D.dict.prod[x.p].toLowerCase() }, cols: [
-      { label: 'Product', get: x => D.dict.prod[x.p], cls: () => 'strong' }, { label: 'Share of ' + PS.label + ' that buy it', align: 'r', get: x => pct(x.share, 0), val: x => x.share, csv: x => x.share.toFixed(3) }, { label: 'Stores buying it', align: 'r', get: x => fmtInt(x.stores), val: x => x.stores }] });
+      { label: 'Product', get: x => D.dict.prod[x.p], cls: () => 'strong' }, { label: 'Share of ' + PS.label + ' that buy it', help: 'share-of-peers', align: 'r', get: x => pct(x.share, 0), val: x => x.share, csv: x => x.share.toFixed(3) }, { label: 'Stores buying it', align: 'r', get: x => fmtInt(x.stores), val: x => x.stores }] });
     els.prod = UI.table({ pageSize: 15, rows: P.rows, csvName: 'store-products.csv', search: { placeholder: 'Search product…', text: x => D.dict.prod[x.p].toLowerCase() }, cols: [
       { label: 'Product', get: x => D.dict.prod[x.p], cls: () => 'strong' }, { label: 'Units', align: 'r', get: x => fmtInt(x.units), val: x => x.units },
       { label: 'Share of units', align: 'r', get: x => pct(x.share, 1), val: x => x.share, csv: x => x.share.toFixed(4) }, { label: 'Orders with it', align: 'r', get: x => fmtInt(x.ords), val: x => x.ords },

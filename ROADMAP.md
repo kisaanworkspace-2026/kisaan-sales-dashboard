@@ -54,4 +54,11 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - Sections: header, 9 KPIs, improvement ideas, trend (day/week/month/year), month and weekday charts, favourites, never-ordered vs similar stores (same store type if set, else all B2B or all B2C), product table with 30d-vs-previous-30d arrow, week/month day-by-product matrix, delivery calendar, order history.
 - Product revenue is NOT available (order total is on one line only), so product weight = units.
 - Tested vs pandas on the xlsx for 3 stores (Grocer-Eez, a 4-order B2B store, a 12-order B2C customer): KPIs 27/27, products, never-ordered shares, week matrix all PASS.
-- Next: Phase 11 (sidebar, refresh progress, tooltips).
+- Next: Phase 12.
+
+## Phase 11 done (26 Nov 2026) - Sidebar, refresh progress, tooltips
+- Sidebar: grouped (Sales, Customers, Products, Geography, Channels, Interstate sales), collapsible to icons (saved in localStorage `rail`), flyout labels when collapsed, active page highlighted, slide-over on mobile.
+- Refresh: spinner, progress bar with % (Downloading, Unzipping, Building), disabled while loading, success message (rows + seconds), failure reason + Retry. Real download progress is unknown with Apps Script, so the bar creeps while waiting.
+- Tooltips: js/help.js (`Help` keyed by slug, optional `page.` prefix); UI.kpi / UI.card / UI.table add an (i) icon; hover, tap, keyboard focus, Esc; clamped to the screen. A column can set `help:` to override its key.
+- No calculation changed; Overview totals identical before and after. sw.js VERSION ksd-v18.
+- Next: Phase 12.
