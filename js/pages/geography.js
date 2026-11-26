@@ -21,7 +21,7 @@ Pages.geography = (() => {
     UI.drawer(name, `${dLong(from)} – ${dLong(to)}`, h('div', null,
       h('div', { class: 'kvs' }, kv('Revenue', money0(last.rev[y])), kv('Orders', fmtInt(last.ord[y])), kv('Customers', fmtInt(last.cust[y])), kv('Units', fmtInt(last.units[y]))),
       h('button', { class: 'btn', style: { marginBottom: '10px' }, onclick: () => { F.toggle('cities', D.dict.city[y]); UI.closeDrawer(); } }, F.st.cities.has(D.dict.city[y]) ? 'Remove from filters' : 'Filter dashboard to this city'),
-      h('h4', null, 'Top customers (revenue)'), h('table', { class: 'lines' }, h('tbody', null, tc.map(([c, r]) => h('tr', { class: 'click', onclick: () => UI.openCustomer && UI.openCustomer(c) }, h('td', null, D.custLabel[c]), h('td', { class: 'r' }, money0(r)))))),
+      h('h4', null, 'Top customers (revenue)'), h('table', { class: 'lines' }, h('tbody', null, tc.map(([c, r]) => h('tr', { class: 'click', onclick: () => UI.openCustomer && UI.openCustomer(c) }, h('td', null, UI.storeLink(c)), h('td', { class: 'r' }, money0(r)))))),
       h('h4', null, 'Top products (units)'), h('table', { class: 'lines' }, h('tbody', null, tp.map(([p, u]) => h('tr', null, h('td', null, D.dict.prod[p]), h('td', { class: 'r' }, fmtInt(u))))))));
   }
   function update() {

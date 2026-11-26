@@ -56,7 +56,7 @@ const UI = {
     function draw() {
       const pages = Math.max(1, Math.ceil(view.length / pageSize)); page = Math.min(page, pages - 1);
       const t = h('table', null, h('thead', null, h('tr', null, cols.map((c, i) => h('th', { class: (c.align || '') + (i === sortC ? ' sorted' : ''), onclick: () => { dir = sortC === i ? -dir : (c.align === 'r' ? -1 : 1); sortC = i; run(); } }, c.label, i === sortC ? (dir > 0 ? ' ▲' : ' ▼') : '')))),
-        h('tbody', null, view.slice(page * pageSize, (page + 1) * pageSize).map(r => h('tr', { class: onRow ? 'click' : '', onclick: onRow ? () => onRow(r) : null }, cols.map(c => h('td', { class: (c.align || '') + (c.cls ? ' ' + c.cls(r) : '') }, c.get(r)))))));
+        h('tbody', null, view.slice(page * pageSize, (page + 1) * pageSize).map(r => h('tr', { class: onRow ? 'click' : '', onclick: onRow ? () => onRow(r, view) : null }, cols.map(c => h('td', { class: (c.align || '') + (c.cls ? ' ' + c.cls(r) : '') }, c.get(r)))))));
       wrap.replaceChildren(t);
       foot.replaceChildren(h('span', null, `${fmtInt(view.length)} rows`), h('span', { class: 'spacer' }),
         h('button', { class: 'btn', type: 'button', disabled: page === 0, onclick: () => { page--; draw(); } }, '‹ Prev'), h('span', null, `Page ${page + 1} / ${pages}`), h('button', { class: 'btn', type: 'button', disabled: page >= pages - 1, onclick: () => { page++; draw(); } }, 'Next ›'));
@@ -71,5 +71,7 @@ const UI = {
     requestAnimationFrame(() => d.classList.add('open'));
   },
   closeDrawer() { const d = $('#drawer'); d.classList.remove('open'); setTimeout(() => d.replaceChildren(), 200); },
+  /** link to the store / customer profile page; c = customer index in Store.D */
+  storeLink(c, text) { const D = Store.D; return h('a', { class: 'slink', href: '#/store/' + (Store.name === 'interstate' ? 'i-' : '') + encodeURIComponent(D.custId[c]), title: 'Open full history', onclick: e => e.stopPropagation() }, text == null ? D.custLabel[c] : text); },
   pill(type, i) { return h('span', { class: 'pill', style: { '--pc': Store.D.typeColor[i] } }, type); }
 };

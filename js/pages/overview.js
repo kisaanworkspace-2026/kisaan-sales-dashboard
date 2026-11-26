@@ -106,13 +106,13 @@ Pages.overview = (() => {
     els.gran = h('div', { class: 'seg' }, gbtn('day', 'Day'), gbtn('week', 'Week'), gbtn('month', 'Month'));
     els.type = h('div'); els.prod = h('div'); els.city = h('div'); els.dow = h('div');
     els.cust = UI.table({ pageSize: 10, rows: [], search: { placeholder: 'Search customer…', text: c => D.custSearch[c] }, cols: [
-      { label: 'Customer', get: c => D.custLabel[c], cls: () => 'strong' },
+      { label: 'Customer', get: c => UI.storeLink(c), val: c => D.custLabel[c], csv: c => D.custLabel[c], cls: () => 'strong' },
       { label: 'Orders', align: 'r', get: c => fmtInt(last.custOrd[c]), val: c => last.custOrd[c] },
       { label: 'Units', align: 'r', get: c => fmtInt(last.custUnits[c]), val: c => last.custUnits[c] },
       { label: 'Revenue', align: 'r', get: c => money0(last.custRev[c]), val: c => last.custRev[c], csv: c => last.custRev[c].toFixed(2) }] });
     els.big = UI.table({ pageSize: 10, rows: [], onRow: k => UI.openOrder(k), cols: [
       { label: 'Date', get: k => dShort(D.oDay[k]), val: k => D.oDay[k] }, { label: 'Order #', get: k => D.oId[k], val: k => D.oId[k] },
-      { label: 'Customer', get: k => D.custLabel[D.oCust[k]], cls: () => 'strong' }, { label: 'Type', get: k => UI.pill(D.dict.type[D.oType[k]], D.oType[k]), val: k => D.oType[k] },
+      { label: 'Customer', get: k => UI.storeLink(D.oCust[k]), val: k => D.custLabel[D.oCust[k]], csv: k => D.custLabel[D.oCust[k]], cls: () => 'strong' }, { label: 'Type', get: k => UI.pill(D.dict.type[D.oType[k]], D.oType[k]), val: k => D.oType[k] },
       { label: 'Amount', align: 'r', get: k => money2(D.oTotal[k]), val: k => D.oTotal[k] }] });
     root.replaceChildren(h('div', { class: 'pagehead' }, h('h2', null, 'Overview'), els.sub, h('button', { class: 'btn', style: { marginLeft: 'auto' }, onclick: setTarget }, '🎯 Daily target')), els.insights, els.kpis,
       h('div', { class: 'grid' },

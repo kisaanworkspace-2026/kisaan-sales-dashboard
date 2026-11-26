@@ -47,3 +47,11 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - New card "All B2B stores" (343 stores in the test data): search, sort, CSV, status badge (Active / New / Not ordering), view buttons Ordered in period / New / Not ordering / All stores. The 5 KPI cards are clickable and jump to this card with the matching view.
 - "Not ordering" now uses the whole Sheet history and ANY order type; date, city, product, weekday and order-type filters do not touch it (only Store type and customer search do). Checked against pandas on the xlsx: 343 stores, 55 at 30d, 50 at 45d - identical.
 - Rows open the store drawer; Phase 10 replaces it with the full store profile page.
+
+## Phase 10 done (26 Nov 2026) - Store profile page
+- Route `#/store/<source_user_id>` (interstate: `#/store/i-<id>`), file js/pages/profile.js, link helper `UI.storeLink(c)` used in all tables and drawers. The filter bar is hidden on the page (whole history).
+- Order panel: Back (previous order viewed), Previous / Next (in the list it was opened from), counter. `UI.table` onRow now receives (row, sortedView).
+- Sections: header, 9 KPIs, improvement ideas, trend (day/week/month/year), month and weekday charts, favourites, never-ordered vs similar stores (same store type if set, else all B2B or all B2C), product table with 30d-vs-previous-30d arrow, week/month day-by-product matrix, delivery calendar, order history.
+- Product revenue is NOT available (order total is on one line only), so product weight = units.
+- Tested vs pandas on the xlsx for 3 stores (Grocer-Eez, a 4-order B2B store, a 12-order B2C customer): KPIs 27/27, products, never-ordered shares, week matrix all PASS.
+- Next: Phase 11 (sidebar, refresh progress, tooltips).

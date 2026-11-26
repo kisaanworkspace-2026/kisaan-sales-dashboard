@@ -75,7 +75,22 @@ const App = (() => {
     if (w.future) statusEl.append(h('span', { class: 'warn', title: 'These rows have a delivery date in the future; check the date column in the Sheet.' }, ` · ⚠ ${fmtInt(w.future)} rows dated in the future`));
   }
 
+  async function ensureDs(ds) {
+    if (Store.name === ds) return true;
+    const sp = $('#splash'); sp.classList.remove('gone'); sp.querySelector('p').textContent = 'Loading ' + ds + ' data…';
+    try { await Store.use(ds); } catch (e) { sp.querySelector('p').textContent = 'Could not load ' + ds + ' data: ' + e.message; return false; }
+    F.useSet(ds); buildFilters(); status(); sp.classList.add('gone'); return true;
+  }
+  async function showStore(ds, id) {
+    document.querySelectorAll('.nav').forEach(a => a.classList.remove('on')); document.body.classList.add('noflt'); UI.closeDrawer();
+    if (!await ensureDs(ds)) return;
+    if (!Pages.profile) await new Promise((ok, no) => document.head.append(h('script', { src: 'js/pages/profile.js', onload: ok, onerror: no })));
+    current = Pages.profile; Pages.profile.render($('#page'), id); window.scrollTo(0, 0);
+  }
   async function show() {
+    const sm = location.hash.match(/^#\/store\/(i-)?([^/?]+)/);
+    if (sm) return showStore(sm[1] ? 'interstate' : 'main', decodeURIComponent(sm[2]));
+    document.body.classList.remove('noflt');
     const id = (location.hash.match(/^#\/([\w-]+)/) || [, 'overview'])[1], nav = NAV.find(n => n.id === id && !n.soon && !n.group) || NAV[0], ds = nav.ds || 'main', page = nav.page || nav.id;
     document.querySelectorAll('.nav').forEach(a => a.classList.toggle('on', a.dataset.id === nav.id));
     if (Store.name !== ds) {
@@ -120,14 +135,23 @@ const App = (() => {
 })();
 function toast(msg) { const t = h('div', { class: 'toast' }, msg); document.body.append(t); setTimeout(() => t.classList.add('out'), 2200); setTimeout(() => t.remove(), 2700); }
 
-UI.openOrder = k => {
+/** Order panel with Back (previous order you looked at), Previous / Next (in the list it was opened from). ctx = array of order indexes in list order. */
+UI._oh = [];
+UI.openOrder = (k, ctx) => { UI._oh = []; showOrder(k, Array.isArray(ctx) || ctx instanceof Int32Array ? Array.from(ctx) : null, false); };
+function showOrder(k, ctx, push, from) {
   const D = Store.D, a = D.oStart[k], b = D.oStart[k + 1], c = D.oCust[k];
+  if (push && from != null) UI._oh.push({ k: from, ctx });
   const lines = []; for (let i = a; i < b; i++) lines.push(i);
-  const kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v));
-  UI.drawer('Order #' + D.oId[k], dLong(D.oDay[k]), h('div', null,
-    h('div', { class: 'kvs' }, kv('Customer', D.custLabel[c]), kv('Phone', D.rawPhone[D.rawCust[a]]), kv('Type', UI.pill(D.dict.type[D.oType[k]], D.oType[k])), kv('Address', (D.dict.addr[D.addr[a]] + ', ' + D.dict.city[D.oCity[k]]).replace(/^, /, '')), kv('Order total', money2(D.oTotal[k]))),
+  const kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v)), ix = ctx ? ctx.indexOf(k) : -1, go = j => showOrder(ctx[j], ctx, true, k);
+  const nav = h('div', { class: 'onav' },
+    h('button', { class: 'btn', type: 'button', disabled: !UI._oh.length, onclick: () => { const p = UI._oh.pop(); showOrder(p.k, p.ctx, false); } }, '‹ Back'),
+    ctx && ix >= 0 ? h('button', { class: 'btn', type: 'button', disabled: ix <= 0, onclick: () => go(ix - 1) }, '← Previous') : null,
+    ctx && ix >= 0 ? h('span', { class: 'mut' }, `${ix + 1} of ${ctx.length}`) : null,
+    ctx && ix >= 0 ? h('button', { class: 'btn', type: 'button', disabled: ix >= ctx.length - 1, onclick: () => go(ix + 1) }, 'Next →') : null);
+  UI.drawer('Order #' + D.oId[k], dLong(D.oDay[k]), h('div', null, nav,
+    h('div', { class: 'kvs' }, kv('Customer', UI.storeLink(c)), kv('Phone', D.rawPhone[D.rawCust[a]]), kv('Type', UI.pill(D.dict.type[D.oType[k]], D.oType[k])), kv('Address', (D.dict.addr[D.addr[a]] + ', ' + D.dict.city[D.oCity[k]]).replace(/^, /, '')), kv('Order total', money2(D.oTotal[k]))),
     h('table', { class: 'lines' }, h('thead', null, h('tr', null, h('th', null, 'Product'), h('th', { class: 'r' }, 'Qty'))),
       h('tbody', null, lines.map(i => h('tr', null, h('td', null, D.dict.prod[D.prod[i]]), h('td', { class: 'r' }, D.qty[i])))), h('tfoot', null, h('tr', null, h('td', null, 'Total units'), h('td', { class: 'r' }, fmtInt(D.oUnits[k])))))));
-};
+}
 { const t = store.get('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); document.documentElement.dataset.theme = t; }
 document.addEventListener('DOMContentLoaded', App.start);

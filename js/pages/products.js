@@ -23,7 +23,7 @@ Pages.products = (() => {
     UI.drawer(name, `${dLong(from)} – ${dLong(to)}`, h('div', null,
       h('div', { class: 'kvs' }, h('div', { class: 'dkv' }, h('span', null, 'Units'), h('b', null, fmtInt(last.u[p]))), h('div', { class: 'dkv' }, h('span', null, 'Orders containing'), h('b', null, fmtInt(last.o[p]))), h('div', { class: 'dkv' }, h('span', null, 'Buyers'), h('b', null, fmtInt(last.b[p])))),
       h('button', { class: 'btn', style: { marginBottom: '14px' }, onclick: () => { F.toggle('prods', name); UI.closeDrawer(); } }, F.st.prods.has(name) ? 'Remove from filters' : 'Filter dashboard to this product'),
-      h('table', { class: 'lines' }, h('thead', null, h('tr', null, h('th', null, 'Top buyers'), h('th', { class: 'r' }, 'Units'))), h('tbody', null, top.map(([c, u]) => h('tr', null, h('td', null, D.custLabel[c]), h('td', { class: 'r' }, fmtInt(u))))))));
+      h('table', { class: 'lines' }, h('thead', null, h('tr', null, h('th', null, 'Top buyers'), h('th', { class: 'r' }, 'Units'))), h('tbody', null, top.map(([c, u]) => h('tr', null, h('td', null, UI.storeLink(c)), h('td', { class: 'r' }, fmtInt(u))))))));
   }
   function update() {
     const D = Store.D, { from, to } = F.range(), A = last = compute(from, to, 0), pr = F.prevRange(), P = pr ? compute(pr.from, pr.to, 1) : null, np = D.dict.prod.length, nt = D.dict.type.length, nd = A.nd;

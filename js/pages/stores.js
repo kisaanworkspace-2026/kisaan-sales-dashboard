@@ -64,14 +64,14 @@ Pages.stores = (() => {
     const D = Store.D, A = last, c = r.c, np = A.np, bought = [], miss = missingFor(A, c);
     for (let p = 0; p < np; p++) if (A.seen[A.sl[c] * np + p]) bought.push([p, A.units[A.sl[c] * np + p]]); bought.sort((a, b) => b[1] - a[1]);
     const kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v));
-    UI.drawer(groups(D).label[c], 'Phone ' + groups(D).phone[c], h('div', null,
+    UI.drawer(UI.storeLink(c), 'Phone ' + groups(D).phone[c], h('div', null,
       h('div', { class: 'kvs' }, kv('Store type', typeName(D, c) || '—'), kv('City', D.dict.city[A.city[c]] || '—'), kv('Orders in period', fmtInt(A.ord[c])), kv('Revenue in period', money0(A.rev[c])), kv('Different products bought', bought.length)),
       h('h4', null, 'Buys now (units)'), h('table', { class: 'lines' }, h('tbody', null, bought.map(([p, u]) => h('tr', null, h('td', null, D.dict.prod[p]), h('td', { class: 'r' }, fmtInt(u)))))),
       h('h4', null, `Not buying yet – popular with similar ${D.hasST ? typeName(D, c).toLowerCase() + 's' : 'stores'}`), miss.length ? h('table', { class: 'lines' }, h('tbody', null, miss.map(([p, f]) => h('tr', null, h('td', null, D.dict.prod[p]), h('td', { class: 'r' }, pct(f, 0) + ' of stores buy'))))) : h('div', { class: 'empty' }, 'Nothing missing – this store already buys the popular products')));
   }
   function openLapsed(e) {
     const D = Store.D, kv = (l, v) => h('div', { class: 'dkv' }, h('span', null, l), h('b', null, v)), gapAvg = e.n > 1 ? Math.round((e.last - e.first) / (e.n - 1)) : null;
-    UI.drawer(groups(D).label[e.c], 'Phone ' + groups(D).phone[e.c], h('div', { class: 'kvs' }, kv('Store type', typeName(D, e.c) || '—'), kv('City', D.dict.city[e.city] || '—'), kv('Last order', dLong(e.last)), kv('Days since last order', D.maxDay - e.last), kv('Typical gap between orders', gapAvg == null ? '—' : gapAvg + ' days'), kv('Orders (all time)', fmtInt(e.n)), kv('Revenue (all time)', money0(e.rev))));
+    UI.drawer(UI.storeLink(e.c), 'Phone ' + groups(D).phone[e.c], h('div', { class: 'kvs' }, kv('Store type', typeName(D, e.c) || '—'), kv('City', D.dict.city[e.city] || '—'), kv('Last order', dLong(e.last)), kv('Days since last order', D.maxDay - e.last), kv('Typical gap between orders', gapAvg == null ? '—' : gapAvg + ' days'), kv('Orders (all time)', fmtInt(e.n)), kv('Revenue (all time)', money0(e.rev))));
   }
   function update() {
     try { update2(); } catch (e) { console.error(e); els.kpis.replaceChildren(h('div', { class: 'warn' }, 'B2B Stores could not be built: ' + (e && e.message || e))); }
@@ -131,24 +131,24 @@ Pages.stores = (() => {
     els.listSub = h('span'); els.statusSeg = h('div', { class: 'seg' }, [['period', 'Ordered in period'], ['new', 'New'], ['lapsed', 'Not ordering'], ['all', 'All stores']].map(([v, t]) => h('button', { type: 'button', 'data-v': v, onclick: () => { statusF = v; store.set('storestatus', v); update(); } }, t)));
     const badge = x => h('span', { class: 'sbadge ' + (x.st === 'Not ordering' ? 'bad' : x.st === 'New' ? 'new' : 'ok') }, x.st), dY = d => dShort(d) + ' ' + dt(d).getUTCFullYear();
     els.list = UI.table({ pageSize: 25, rows: [], onRow: x => openLapsed(x.e), csvName: 'b2b-stores.csv', search: { placeholder: 'Search store or phone…', text: x => groups(D).search[x.c] }, cols: [
-      { label: 'Store', get: x => groups(D).label[x.c], cls: () => 'strong', val: x => groups(D).label[x.c] }, ...(D.hasST ? [{ label: 'Type', get: x => T(x.c), val: x => T(x.c) }] : []), { label: 'City', get: x => D.dict.city[x.e.city], val: x => D.dict.city[x.e.city] },
+      { label: 'Store', get: x => UI.storeLink(x.c), val: x => groups(D).label[x.c], csv: x => groups(D).label[x.c], cls: () => 'strong', val: x => groups(D).label[x.c] }, ...(D.hasST ? [{ label: 'Type', get: x => T(x.c), val: x => T(x.c) }] : []), { label: 'City', get: x => D.dict.city[x.e.city], val: x => D.dict.city[x.e.city] },
       { label: 'First order', get: x => dY(x.e.first), val: x => x.e.first, csv: x => dISO(x.e.first) }, { label: 'Last order', get: x => dY(x.e.last), val: x => x.e.last, csv: x => dISO(x.e.last) },
       { label: 'Days since', align: 'r', get: x => D.maxDay - x.e.last, val: x => D.maxDay - x.e.last },
       { label: 'Orders (period)', align: 'r', get: x => fmtInt(x.po), val: x => x.po }, { label: 'Revenue (period)', align: 'r', get: x => money0(x.pr), val: x => x.pr, csv: x => x.pr.toFixed(2) },
       { label: 'Avg order', align: 'r', get: x => x.po ? money0(x.pr / x.po) : '—', val: x => x.po ? x.pr / x.po : 0, csv: x => x.po ? (x.pr / x.po).toFixed(2) : '' },
       { label: 'Orders (all time)', align: 'r', get: x => fmtInt(x.e.n), val: x => x.e.n }, { label: 'Status', get: badge, val: x => x.st, csv: x => x.st }] });
     els.tbl = UI.table({ pageSize: 10, rows: [], csvName: 'new-stores.csv', search: sr, cols: [
-      { label: 'Store', get: c => groups(D).label[c], cls: () => 'strong' }, ...(D.hasST ? [{ label: 'Type', get: T }] : []), { label: 'City', get: c => D.dict.city[last.city[c]] },
+      { label: 'Store', get: c => UI.storeLink(c), val: c => groups(D).label[c], csv: c => groups(D).label[c], cls: () => 'strong' }, ...(D.hasST ? [{ label: 'Type', get: T }] : []), { label: 'City', get: c => D.dict.city[last.city[c]] },
       { label: 'First order', get: c => dShort(bf()[c]), val: c => bf()[c], csv: c => dISO(bf()[c]) }, { label: 'Orders', align: 'r', get: c => fmtInt(last.ord[c]), val: c => last.ord[c] },
       { label: 'Revenue', align: 'r', get: c => money0(last.rev[c]), val: c => last.rev[c], csv: c => last.rev[c].toFixed(2) }] });
     els.lapsed = UI.table({ pageSize: 10, rows: [], onRow: openLapsed, csvName: 'stores-not-ordering.csv', search: { placeholder: 'Search store…', text: e => groups(D).search[e.c] }, cols: [
-      { label: 'Store', get: e => groups(D).label[e.c], cls: () => 'strong', val: e => groups(D).label[e.c] }, ...(D.hasST ? [{ label: 'Type', get: e => T(e.c), val: e => T(e.c) }] : []), { label: 'City', get: e => D.dict.city[e.city], val: e => D.dict.city[e.city] },
+      { label: 'Store', get: e => UI.storeLink(e.c), val: e => groups(D).label[e.c], csv: e => groups(D).label[e.c], cls: () => 'strong', val: e => groups(D).label[e.c] }, ...(D.hasST ? [{ label: 'Type', get: e => T(e.c), val: e => T(e.c) }] : []), { label: 'City', get: e => D.dict.city[e.city], val: e => D.dict.city[e.city] },
       { label: 'Last order', get: e => dLong(e.last), val: e => e.last, csv: e => dISO(e.last) }, { label: 'Days since', align: 'r', get: e => D.maxDay - e.last, val: e => D.maxDay - e.last },
       { label: 'Usual gap', align: 'r', get: e => e.n > 1 ? Math.round((e.last - e.first) / (e.n - 1)) + 'd' : '—', val: e => e.n > 1 ? (e.last - e.first) / (e.n - 1) : 1e9 },
       { label: 'Orders', align: 'r', get: e => fmtInt(e.n), val: e => e.n }, { label: 'All-time revenue', align: 'r', get: e => money0(e.rev), val: e => e.rev, csv: e => e.rev.toFixed(2) }] });
     const miss = r => missingFor(last, r.c).slice(0, 6).map(([p, f]) => D.dict.prod[p] + ' (' + pct(f, 0) + ')').join(', ');
     els.low = UI.table({ pageSize: 10, rows: [], onRow: openStore, csvName: 'stores-low-variety.csv', search: { placeholder: 'Search store…', text: r => groups(D).search[r.c] }, cols: [
-      { label: 'Store', get: r => groups(D).label[r.c], cls: () => 'strong', val: r => groups(D).label[r.c] }, ...(D.hasST ? [{ label: 'Type', get: r => T(r.c), val: r => T(r.c) }] : []), { label: 'City', get: r => D.dict.city[last.city[r.c]], val: r => D.dict.city[last.city[r.c]] },
+      { label: 'Store', get: r => UI.storeLink(r.c), val: r => groups(D).label[r.c], csv: r => groups(D).label[r.c], cls: () => 'strong', val: r => groups(D).label[r.c] }, ...(D.hasST ? [{ label: 'Type', get: r => T(r.c), val: r => T(r.c) }] : []), { label: 'City', get: r => D.dict.city[last.city[r.c]], val: r => D.dict.city[last.city[r.c]] },
       { label: 'Items', align: 'r', get: r => last.nProd[r.c], val: r => last.nProd[r.c] }, { label: 'Orders', align: 'r', get: r => fmtInt(last.ord[r.c]), val: r => last.ord[r.c] },
       { label: 'Revenue', align: 'r', get: r => money0(last.rev[r.c]), val: r => last.rev[r.c], csv: r => last.rev[r.c].toFixed(2) },
       { label: 'Buys now', get: r => { const o = []; for (let p = 0; p < last.np; p++) if (last.seen[last.sl[r.c] * last.np + p]) o.push(D.dict.prod[p]); return o.join(', '); }, cls: () => 'wrap' },

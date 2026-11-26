@@ -21,7 +21,7 @@ Pages.orders = (() => {
       cols: [
         { label: 'Date', get: k => dShort(D.oDay[k]), val: k => D.oDay[k], csv: k => dISO(D.oDay[k]) },
         { label: 'Order #', get: k => D.oId[k], val: k => D.oId[k] },
-        { label: 'Customer', get: k => D.custLabel[D.oCust[k]], cls: () => 'strong' },
+        { label: 'Customer', get: k => UI.storeLink(D.oCust[k]), val: k => D.custLabel[D.oCust[k]], csv: k => D.custLabel[D.oCust[k]], cls: () => 'strong' },
         { label: 'Phone', get: k => D.rawPhone[D.rawCust[D.oStart[k]]], val: k => D.rawPhone[D.rawCust[D.oStart[k]]] },
         { label: 'Type', get: k => UI.pill(D.dict.type[D.oType[k]], D.oType[k]), val: k => D.oType[k], csv: k => D.dict.type[D.oType[k]] },
         { label: 'City', get: k => D.dict.city[D.oCity[k]] },
