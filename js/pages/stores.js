@@ -137,7 +137,7 @@ Pages.stores = (() => {
       { label: 'Orders (period)', align: 'r', get: x => fmtInt(x.po), val: x => x.po }, { label: 'Revenue (period)', align: 'r', get: x => money0(x.pr), val: x => x.pr, csv: x => x.pr.toFixed(2) },
       { label: 'Avg order', align: 'r', get: x => x.po ? money0(x.pr / x.po) : '—', val: x => x.po ? x.pr / x.po : 0, csv: x => x.po ? (x.pr / x.po).toFixed(2) : '' },
       { label: 'Orders (all time)', align: 'r', get: x => fmtInt(x.e.n), val: x => x.e.n }, { label: 'Status', get: badge, val: x => x.st, csv: x => x.st }] });
-    els.tbl = UI.table({ pageSize: 10, rows: [], csvName: 'new-stores.csv', search: sr, cols: [
+    els.tbl = UI.table({ pageSize: 10, rows: [], onRow: c => UI.goStore(c), csvName: 'new-stores.csv', search: sr, cols: [
       { label: 'Store', get: c => UI.storeLink(c), val: c => groups(D).label[c], csv: c => groups(D).label[c], cls: () => 'strong' }, ...(D.hasST ? [{ label: 'Type', get: T }] : []), { label: 'City', get: c => D.dict.city[last.city[c]] },
       { label: 'First order', get: c => dShort(bf()[c]), val: c => bf()[c], csv: c => dISO(bf()[c]) }, { label: 'Orders', align: 'r', get: c => fmtInt(last.ord[c]), val: c => last.ord[c] },
       { label: 'Revenue', align: 'r', get: c => money0(last.rev[c]), val: c => last.rev[c], csv: c => last.rev[c].toFixed(2) }] });

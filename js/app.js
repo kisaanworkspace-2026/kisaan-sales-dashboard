@@ -16,6 +16,7 @@ const NAV = [
   { grp: 'Interstate sales', id: 'i-orders', page: 'orders', ds: 'interstate', title: 'Orders', icon: 'M4 6h16M4 12h16M4 18h10', line: true },
   { grp: 'Interstate sales', id: 'i-products', page: 'products', ds: 'interstate', title: 'Products', icon: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', line: true },
   { grp: 'Interstate sales', id: 'i-customers', page: 'customers', ds: 'interstate', title: 'Stores', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0', line: true },
+  { grp: 'Interstate sales', id: 'i-regional', page: 'customers', ds: 'main', title: 'Regional stores', icon: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6', line: true },
   { grp: 'Interstate sales', id: 'i-cities', page: 'geography', ds: 'interstate', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
 ];
 const App = (() => {
@@ -143,7 +144,7 @@ const App = (() => {
     if (!Pages[page]) await new Promise((ok, no) => document.head.append(h('script', { src: `js/pages/${page}.js`, onload: ok, onerror: no })));
     current = Pages[page];
     if (!mounted[page] || mounted[page].D !== Store.D) { const el = h('div'); current.mount(el); mounted[page] = { D: Store.D, el }; }
-    host.replaceChildren(...[ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores') : null, mounted[page].el].filter(Boolean));
+    host.replaceChildren(...[ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores (the 6 named interstate stores only) · ', h('a', { href: '#/i-regional' }, 'Regional stores →')) : (nav.id === 'i-regional' ? h('div', { class: 'dsbanner' }, '🏬 Regional stores = every store except the interstate ones · ', h('a', { href: '#/i-customers' }, '← Interstate stores')) : null), mounted[page].el].filter(Boolean));
     current.update();
   }
 

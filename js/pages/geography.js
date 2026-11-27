@@ -34,6 +34,8 @@ Pages.geography = (() => {
       UI.kpi({ label: 'Top 5 share of revenue', value: A.tot ? pct(top5 / A.tot, 0) : '—', hint: 'concentration' }),
       UI.kpi({ label: 'Avg revenue / city', value: ids.length ? money0(A.tot / ids.length) : '—', hint: 'in period' }),
       UI.kpi({ label: 'Avg customers / city', value: ids.length ? (ids.reduce((s, y) => s + A.cust[y], 0) / ids.length).toFixed(1) : '—', hint: 'in period' }));
+    UI.wireKpis(els.kpis, [[() => UI.jump(els.tbl), 'Click: jump to the list of all cities'], [() => ids.length && F.toggle('cities', D.dict.city[ids[0]]), 'Click: filter the dashboard to the top city (click again to remove)'],
+      [() => UI.jump(els.bars), 'Click: jump to the top cities chart'], [() => UI.jump(els.tbl), 'Click: jump to the list of all cities'], [() => UI.jump(els.tbl), 'Click: jump to the list of all cities']]);
     Charts.hbar(els.bars, ids.slice(0, 15).map(y => ({ key: D.dict.city[y], label: nm(y), value: A.rev[y], sub: fmtInt(A.ord[y]) + ' orders · ' + fmtInt(A.cust[y]) + ' customers', color: 'var(--c2)' })), { fmt: moneyC, tipFmt: money0, valueName: 'Revenue', selected: F.st.cities, onClick: it => F.toggle('cities', it.key) });
     // heat matrix: top 12 cities x top 10 products, colour = share of the city's units
     const pu = new Float64Array(np); for (const y of ids) for (let p = 0; p < np; p++) pu[p] += A.mat[y * np + p];

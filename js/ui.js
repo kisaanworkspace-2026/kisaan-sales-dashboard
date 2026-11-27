@@ -32,13 +32,14 @@ const UI = {
       h('header', null, h('div', null, h('h3', null, title, HelpUI.info(title, 'card')), sub ? h('p', null, sub) : null), tools || null), body);
   },
 
-  kpi({ label, value, delta, deltaGood = 'up', spark, hint, color }) {
+  kpi({ label, value, delta, deltaGood = 'up', spark, hint, color, onClick, tip }) {
     let d = null;
     if (delta != null && isFinite(delta)) {
       const up = delta >= 0, good = (deltaGood === 'up') === up;
       d = h('span', { class: 'delta ' + (Math.abs(delta) < .0005 ? 'flat' : good ? 'good' : 'bad') }, (up ? '▲ ' : '▼ ') + pct(Math.abs(delta)), h('em', null, ' vs prev'));
     } else d = h('span', { class: 'delta flat' }, hint || '—');
-    return h('div', { class: 'kpi' }, h('div', { class: 'kl' }, label, HelpUI.info(label, 'kpi')), h('div', { class: 'kv' }, value), h('div', { class: 'kf' }, d, spark ? Charts.spark(spark, color) : null));
+    const el = h('div', { class: 'kpi' + (onClick ? ' clickable' : ''), title: onClick ? (tip || 'Click for details') : null, role: onClick ? 'button' : null, tabindex: onClick ? 0 : null, onclick: onClick ? () => onClick() : null, onkeydown: onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : null }, h('div', { class: 'kl' }, label, HelpUI.info(label, 'kpi')), h('div', { class: 'kv' }, value), h('div', { class: 'kf' }, d, spark ? Charts.spark(spark, color) : null));
+    return el;
   },
 
   /** Power-BI-style slicer: button + searchable checkbox list. */
@@ -99,6 +100,25 @@ const UI = {
   },
   closeDrawer() { const d = $('#drawer'); d.classList.remove('open'); setTimeout(() => d.replaceChildren(), 200); },
   /** link to the store / customer profile page; c = customer index in Store.D */
-  storeLink(c, text) { const D = Store.D; return h('a', { class: 'slink', href: '#/store/' + (Store.name === 'interstate' ? 'i-' : '') + encodeURIComponent(D.custId[c]), title: 'Open full history', onclick: e => e.stopPropagation() }, text == null ? D.custLabel[c] : text); },
+  /** make the KPI tiles in `box` clickable: list = [[fn, tip], ...] in tile order (null = leave as is) */
+  wireKpis(box, list) { [...box.children].forEach((k, i) => { const x = list[i]; if (!x) return; const [fn, tip] = x; k.classList.add('clickable'); k.title = tip; k.setAttribute('role', 'button'); k.tabIndex = 0; k.onclick = () => fn(); k.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } }; }); },
+  go(hash) { location.hash = hash; },
+  goStore(c) { location.hash = '#/store/' + (Store.name === 'interstate' ? 'i-' : '') + encodeURIComponent(Store.D.custId[c]); },
+  /** scroll to a card and flash it */
+  jump(el) { if (!el) return; const c = el.closest ? (el.closest('.card') || el) : el; c.scrollIntoView({ behavior: 'smooth', block: 'start' }); c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); },
+  /** Performance rule used in EVERY table: revenue of the last 30 days of data vs the 30 days before, per customer / store. Whole history, filters do not change it. */
+  perf(c) {
+    const D = Store.D;
+    if (!D._perf) { const n = D.custName.length, cur = new Float64Array(n), prev = new Float64Array(n), e = D.maxDay, a = e - 29, b = e - 59;
+      for (let k = 0; k < D.nOrders; k++) { const d = D.oDay[k]; if (d >= a) cur[D.oCust[k]] += D.oTotal[k]; else if (d >= b) prev[D.oCust[k]] += D.oTotal[k]; }
+      D._perf = { cur, prev, a, e, b }; }
+    const P = D._perf, x = P.cur[c], y = P.prev[c];
+    const tip = `Last 30 days (${dLong(P.a)} – ${dLong(P.e)}): ${money0(x)}\nPrevious 30 days (${dLong(P.b)} – ${dLong(P.a - 1)}): ${money0(y)}\nChange = (last 30 − previous 30) ÷ previous 30. Revenue = order totals, whole history, not changed by filters.`;
+    if (!x && !y) return h('span', { class: 'parr flat', title: tip + '\nNo orders in either period.' }, '–');
+    if (!y) return h('span', { class: 'parr up', title: tip + '\nNo orders in the previous 30 days, so no % can be shown.' }, '▲ new');
+    const d = (x - y) / y; return h('span', { class: 'parr ' + (d >= 0 ? 'up' : 'down'), title: tip }, (d >= 0 ? '▲ ' : '▼ ') + Math.round(Math.abs(d) * 100) + '%');
+  },
+  /** link to the store / customer profile page + performance arrow; c = customer index in Store.D */
+  storeLink(c, text, noArrow) { const D = Store.D, a = h('a', { class: 'slink', href: '#/store/' + (Store.name === 'interstate' ? 'i-' : '') + encodeURIComponent(D.custId[c]), title: 'Open full history', onclick: e => e.stopPropagation() }, text == null ? D.custLabel[c] : text); return noArrow ? a : h('span', { class: 'sl' }, a, UI.perf(c)); },
   pill(type, i) { return h('span', { class: 'pill', style: { '--pc': Store.D.typeColor[i] } }, type); }
 };

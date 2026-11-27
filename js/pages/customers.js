@@ -45,6 +45,8 @@ Pages.customers = (() => {
     els.kpis.replaceChildren(UI.kpi({ label: 'Active customers', value: fmtInt(act), hint: 'ordered in period' }), UI.kpi({ label: 'New customers', value: fmtInt(A.newC), hint: act ? pct(A.newC / act, 0) + ' of active' : '' }),
       UI.kpi({ label: 'Returning', value: fmtInt(A.retC), hint: act ? pct(A.retC / act, 0) + ' of active' : '' }), UI.kpi({ label: 'Orders per customer', value: act ? (A.orders / act).toFixed(1) : '—', hint: money0(act ? A.rev0 / act : 0) + ' revenue each' }),
       UI.kpi({ label: `Inactive ${gap}+ days`, value: fmtInt(rk.length), hint: money0(atRiskRev) + ' lifetime value' }));
+    UI.wireKpis(els.kpis, [[() => UI.jump(els.tbl), 'Click: jump to the list of active customers'], [() => UI.jump(els.trend), 'Click: jump to new vs active customers'], [() => UI.jump(els.mix), 'Click: jump to new vs returning revenue'],
+      [() => UI.jump(els.freq), 'Click: jump to orders per customer'], [() => UI.jump(els.risk), 'Click: jump to the inactive customers list']]);
     const x = Array.from({ length: A.nb }, (_, i) => from + i * A.g);
     Charts.trend(els.trend, { x, a: { name: 'New customers', data: Array.from(A.neu), fmt: fmtInt, axis: compact }, b: { name: 'Active customers', data: Array.from(A.act), fmt: fmtInt }, label: i => (A.g === 1 ? '' : A.g === 7 ? 'Week of ' : 'From ') + dLong(x[i]), tick: i => dShort(x[i]) });
     Charts.donut(els.mix, [{ key: 'n', label: 'New', value: A.newRev, color: 'var(--c3)' }, { key: 'r', label: 'Returning', value: A.retRev, color: 'var(--c1)' }], { fmt: money0, valueName: 'Revenue', center: moneyC(A.rev0), centerLabel: 'revenue' });

@@ -2,6 +2,11 @@
    (e.g. "Not ordered 45+ days" -> "not-ordered-n-days"). A key starting with "<page>." only applies on that page.
    { purpose: what it is for, calc: how the number is worked out }. A heading without an entry simply shows no (i). */
 const Help = {
+  'not-sold-in-period': { purpose: 'Products that are in the data but had no units delivered in the selected dates.', calc: 'Every product in the data minus the products with at least one delivered unit in the period. Last sale date is all-time.' },
+  'product-store-type': { purpose: 'Which kinds of store buy which product.', calc: 'Units, orders containing the product, or order revenue (switch at the top right) grouped by the store type of the buyer. Revenue is the total of the orders that contain the product, so rows overlap.' },
+  'days-since-last-sale': { purpose: 'How long ago the product was last delivered.', calc: 'Latest date in the data minus the last delivery date of the product (all time).' },
+  'last-sold-all-time': { purpose: 'The most recent delivery date of the product, ignoring the date filter.', calc: 'Latest delivery date of any line with this product.' },
+  'matrix-total': { purpose: 'Row total for the product across all store types shown.', calc: 'Units: all units sold. Orders: orders containing the product. Revenue: sum of the matrix cells, so it can be higher than real revenue.' },
   /* ---------- general definitions used by many headings ---------- */
   'revenue': { purpose: 'Money received for the orders in scope.', calc: 'Sum of the order totals. The Sheet holds each order total on one line only, so every order is counted once (order id + delivery date).' },
   'orders': { purpose: 'How many orders were delivered.', calc: 'Count of distinct orders (order id + delivery date). Several lines of one order count as one order.' },

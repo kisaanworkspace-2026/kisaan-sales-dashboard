@@ -77,6 +77,8 @@ Pages.overview = (() => {
       UI.kpi({ label: 'Avg order value', value: money2(A.aov), delta: dl(A.aov, P && P.aov), hint: 'full range' }),
       UI.kpi({ label: 'Customers', value: fmtInt(A.custs), delta: dl(A.custs, P && P.custs), hint: 'full range' }),
       UI.kpi({ label: 'Revenue / day', value: money(A.rev / (to - from + 1)), delta: dl(A.rev, P && P.rev), hint: 'full range' }));
+    UI.wireKpis(els.kpis, [[() => UI.jump(els.trend), 'Click: jump to the revenue trend'], [() => UI.go('#/orders'), 'Click: open the Orders list'], [() => UI.go('#/products'), 'Click: open the Products page'],
+      [() => UI.jump(els.big), 'Click: jump to the largest orders'], [() => UI.go('#/customers'), 'Click: open the Customers page'], [() => UI.jump(els.trend), 'Click: jump to the revenue trend']]);
 
     const B = buckets(from, to, A);
     const tg = target > 0 ? B.x.map((d, i) => target * (B.g === 'day' ? 1 : B.g === 'week' ? Math.min(7, to - d + 1) : Math.min(new Date(Date.UTC(dt(d).getUTCFullYear(), dt(d).getUTCMonth() + 1, 0)).getUTCDate(), to - d + 1))) : null;
@@ -105,7 +107,7 @@ Pages.overview = (() => {
     els.sub = h('span'); els.insights = h('div', { class: 'insights' }); els.kpis = h('div', { class: 'kpis' }); els.trend = h('div', { class: 'trendbox' });
     els.gran = h('div', { class: 'seg' }, gbtn('day', 'Day'), gbtn('week', 'Week'), gbtn('month', 'Month'));
     els.type = h('div'); els.prod = h('div'); els.city = h('div'); els.dow = h('div');
-    els.cust = UI.table({ pageSize: 10, rows: [], search: { placeholder: 'Search customer…', text: c => D.custSearch[c] }, cols: [
+    els.cust = UI.table({ pageSize: 10, rows: [], onRow: c => UI.goStore(c), search: { placeholder: 'Search customer…', text: c => D.custSearch[c] }, cols: [
       { label: 'Customer', get: c => UI.storeLink(c), val: c => D.custLabel[c], csv: c => D.custLabel[c], cls: () => 'strong' },
       { label: 'Orders', align: 'r', get: c => fmtInt(last.custOrd[c]), val: c => last.custOrd[c] },
       { label: 'Units', align: 'r', get: c => fmtInt(last.custUnits[c]), val: c => last.custUnits[c] },

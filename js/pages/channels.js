@@ -49,7 +49,7 @@ Pages.channels = (() => {
     const D = Store.D, { from, to } = F.range(), A = last = compute(from, to), nt = D.dict.type.length, nd = A.nd, ids = [];
     for (let t = 0; t < nt; t++) if (A.ord[t] > 0) ids.push(t); ids.sort((a, b) => A.rev[b] - A.rev[a]);
     els.sub.textContent = `${dLong(from)} – ${dLong(to)}` + (F.isActive() ? ' · filtered' : '');
-    els.cards.replaceChildren(...ids.map(t => h('div', { class: 'tcard', style: { '--pc': D.typeColor[t] } },
+    els.cards.replaceChildren(...ids.map(t => h('div', { class: 'tcard click' + (F.st.types.has(D.dict.type[t]) ? ' on' : ''), title: 'Click to filter the whole dashboard to ' + D.dict.type[t].toUpperCase() + ' (click again to remove)', onclick: () => F.toggle('types', D.dict.type[t]), style: { '--pc': D.typeColor[t] } },
       h('div', { class: 'tc-h' }, UI.pill(D.dict.type[t], t), h('span', null, pct(A.rev[t] / (A.tot || 1)) + ' of revenue')),
       h('div', { class: 'kv' }, money0(A.rev[t])),
       h('div', { class: 'tc-g' }, [['Orders', fmtInt(A.ord[t])], ['Customers', fmtInt(A.cust[t])], ['Avg order', money0(A.rev[t] / A.ord[t])], ['Units / order', (A.units[t] / A.ord[t]).toFixed(1)], ['Revenue / day', money0(A.rev[t] / nd)], ['Orders / day', (A.ord[t] / nd).toFixed(1)]].map(([l, v]) => h('div', null, h('span', null, l), h('b', null, v)))),

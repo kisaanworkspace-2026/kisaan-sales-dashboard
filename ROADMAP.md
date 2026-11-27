@@ -54,11 +54,18 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - Sections: header, 9 KPIs, improvement ideas, trend (day/week/month/year), month and weekday charts, favourites, never-ordered vs similar stores (same store type if set, else all B2B or all B2C), product table with 30d-vs-previous-30d arrow, week/month day-by-product matrix, delivery calendar, order history.
 - Product revenue is NOT available (order total is on one line only), so product weight = units.
 - Tested vs pandas on the xlsx for 3 stores (Grocer-Eez, a 4-order B2B store, a 12-order B2C customer): KPIs 27/27, products, never-ordered shares, week matrix all PASS.
-- Next: Phase 12.
+- Next: Phase 13.
 
 ## Phase 11 done (26 Nov 2026) - Sidebar, refresh progress, tooltips
 - Sidebar: grouped (Sales, Customers, Products, Geography, Channels, Interstate sales), collapsible to icons (saved in localStorage `rail`), flyout labels when collapsed, active page highlighted, slide-over on mobile.
 - Refresh: spinner, progress bar with % (Downloading, Unzipping, Building), disabled while loading, success message (rows + seconds), failure reason + Retry. Real download progress is unknown with Apps Script, so the bar creeps while waiting.
 - Tooltips: js/help.js (`Help` keyed by slug, optional `page.` prefix); UI.kpi / UI.card / UI.table add an (i) icon; hover, tap, keyboard focus, Esc; clamped to the screen. A column can set `help:` to override its key.
 - No calculation changed; Overview totals identical before and after. sw.js VERSION ksd-v18.
-- Next: Phase 12.
+- Next: Phase 13.
+
+## Phase 12 done (27 Nov 2026) - Products, clickable cards, performance arrows
+- Products page already had: full product list (zero sales included), product x store-type matrix (Units / Orders / Order revenue switch; revenue is per order so rows overlap), "Not sold in period" list. Added row clicks (matrix row, top-products bar, not-sold row open the product panel).
+- Performance arrow (`UI.perf`, shown by `UI.storeLink` in EVERY table/drawer): revenue of last 30 days of data vs the 30 days before, per customer/store, whole history, filters do not change it. Green ▲ % / red ▼ % / "▲ new" (no orders in previous 30) / "–" (none in either). Hover shows both figures, dates and the rule. `UI.storeLink(c, text, true)` hides it.
+- Clicks: KPI tiles via `UI.kpi({onClick})` or `UI.wireKpis(box, [[fn, tip], ...])`; hover lift + pointer + tooltip hint. Overview, Customers, Cities, Products KPIs jump to (and flash) the matching card or open the page/product; Overview top-customers rows open the store profile; B2B new-stores rows open the profile; Channels type cards filter the dashboard to that order type.
+- Tested: arrows 4,785/4,785 customers equal an independent calculation; sum of last-30 revenue = Overview 30d revenue; all KPI values on all pages unchanged; interstate arrows work; no console errors. sw.js ksd-v19.
+- Next: Phase 13 (speed).
