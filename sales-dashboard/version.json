@@ -1,0 +1,28 @@
+{
+ "v": "ksd-v20",
+ "files": [
+  "index.html",
+  "css/app.css",
+  "manifest.webmanifest",
+  "js/config.js",
+  "js/util.js",
+  "js/help.js",
+  "js/decode.js",
+  "js/worker.js",
+  "js/store.js",
+  "js/filters.js",
+  "js/charts.js",
+  "js/ui.js",
+  "js/app.js",
+  "js/pages/overview.js",
+  "js/pages/orders.js",
+  "js/pages/products.js",
+  "js/pages/customers.js",
+  "js/pages/geography.js",
+  "js/pages/channels.js",
+  "js/pages/stores.js",
+  "js/pages/profile.js",
+  "assets/icon-192.png",
+  "assets/apple-touch-icon.png"
+ ]
+}

@@ -40,7 +40,7 @@ const Store = (() => {
 
   /** payload -> D (same function as in the worker). Colours need CFG, which the worker does not have, so they are added here. */
   function finish(D) { D.typeColor = D.dict.type.map((t, i) => CFG.TYPE_COLORS[t] || CFG.PALETTE[(i + 4) % CFG.PALETTE.length]); return D; }
-  const decode = p => finish(ksdDecode(p)), DEC_FMT = 1;        // DEC_FMT: bump when the shape of D changes, so old caches are ignored
+  const decode = p => finish(ksdDecode(p)), DEC_FMT = 2;        // DEC_FMT: bump when the shape of D changes, so old caches are ignored
 
   /** Web Worker: unzip + JSON.parse + decode happen off the main thread, so the page stays responsive while 100k-1M rows load.
       Falls back to the main thread if workers are unavailable. job = { gz | url | obj, v, savedAt } */

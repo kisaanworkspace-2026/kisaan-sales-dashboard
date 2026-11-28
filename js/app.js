@@ -23,7 +23,7 @@ const NAV = [
    APP_VERSION must equal VERSION in sw.js and "v" in version.json (tools/release.py bumps all three). The page asks version.json (never cached) at start,
    every 5 minutes and when the tab is opened again. If it differs, a popup asks the person to refresh; the button does what Ctrl+Shift+R does:
    clears the app-shell caches, unregisters the service worker, re-downloads every file bypassing the browser cache, and reloads. Data (IndexedDB) and the PIN are kept. */
-const APP_VERSION = 'ksd-v20';
+const APP_VERSION = 'ksd-v21';
 const Updater = (() => {
   let shown = false;
   async function hardRefresh(files) {
@@ -142,6 +142,17 @@ const App = (() => {
     }
     if (m && m.sheetRows > m.rows + (w.skipped || 0) + 0 && w.skipped) statusEl.append(h('span', { class: 'warn', title: 'Rows with a missing order id or an unreadable date are skipped. Check the Sheet.' }, ` · ⚠ ${fmtInt(w.skipped)} rows skipped`));
     if (w.swapped) statusEl.append(h('span', { class: 'warn', title: 'Dates written day/month were read as month/day by Google Sheets. They were corrected automatically. Tip: File > Settings > Locale = Australia or India.' }, ` · ⚠ ${fmtInt(w.swapped)} dates auto-corrected`));
+    const ck = D.check || (m && m.check); if (ck && ((ck.conflicts && ck.conflicts.length) || (ck.missing && ck.missing.length) || (ck.dupIds && ck.dupIds.length) || ck.noRegion || (ck.noTab && (ck.noTab.b2b || ck.noTab.other)) || ck.soldInSales || (ck.interNoSales && ck.interNoSales.length))) {
+      const lines = [];
+      if (ck.missing && ck.missing.length) lines.push('Missing tab: ' + ck.missing.join(', '));
+      if (ck.conflicts && ck.conflicts.length) lines.push('In both Local and Interstate tabs (Interstate used): ' + ck.conflicts.join(', '));
+      if (ck.dupIds && ck.dupIds.length) lines.push('Duplicate store ids: ' + ck.dupIds.join(', '));
+      if (ck.noRegion) lines.push(fmtInt(ck.noRegion) + ' stores with no region (set as Local)');
+      if (ck.noTab && (ck.noTab.b2b || ck.noTab.other)) lines.push('Not in any store tab: ' + fmtInt(ck.noTab.b2b || 0) + ' B2B (Unmapped), ' + fmtInt(ck.noTab.other || 0) + ' B2C (Website)');
+      if (ck.soldInSales) lines.push(fmtInt(ck.soldInSales) + ' sold stores found in Sales');
+      if (ck.interNoSales && ck.interNoSales.length) lines.push('Interstate stores with no sales: ' + ck.interNoSales.join(', ') + (ck.interNoSales.length >= 50 ? ' (first 50)' : ''));
+      statusEl.append(h('span', { class: 'warn', title: lines.join('\n'), onclick: () => alert('Data check\n\n' + lines.join('\n')), style: 'cursor:pointer' }, ' · ⚠ data check: ' + lines.length + (lines.length === 1 ? ' item' : ' items')));
+    }
     if (w.future) statusEl.append(h('span', { class: 'warn', title: 'These rows have a delivery date in the future; check the date column in the Sheet.' }, ` · ⚠ ${fmtInt(w.future)} rows dated in the future`));
   }
 

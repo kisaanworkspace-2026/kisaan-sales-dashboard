@@ -38,8 +38,19 @@ function ksdDecode(p) {
   D.cFirst = new Int32Array(nc).fill(1e9); D.cLast = new Int32Array(nc).fill(-1e9); D.cOrders = new Int32Array(nc);
   for (let k = 0; k < no; k++) { const c = D.oCust[k], d = D.oDay[k]; if (d < D.cFirst[c]) D.cFirst[c] = d; if (d > D.cLast[c]) D.cLast[c] = d; D.cOrders[c]++; }
   // store types (from the StoreTypes tab / bundled file), joined on the store name
-  const norm = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(), tmap = new Map((p.st || []).map(r => [norm(r[0]), r[1]]));
-  D.hasST = tmap.size > 0; D.stNames = [...new Set(tmap.values())].sort(); D.stAll = D.hasST ? [...D.stNames, 'Unmapped'] : [];
-  D.cTypeName = D.custName.map(nm => tmap.get(norm(nm)) || 'Unmapped'); D.cST = Int16Array.from(D.cTypeName, x => D.stAll.indexOf(x));
+  // store type, region and sold flag come from the sheet by id (payload field cs, aligned with dict.cust: [region 0 local|1 regional|2 interstate, type, sold 0|1])
+  if (Array.isArray(p.cs) && p.cs.length === nc) {
+    D.custRegion = Uint8Array.from(p.cs, x => x[0]); D.custSold = Uint8Array.from(p.cs, x => x[2]);
+    D.cTypeName = p.cs.map(x => x[1]);
+    D.stNames = [...new Set(D.cTypeName)].filter(x => x !== 'Unmapped' && x !== 'Website').sort();
+    D.hasST = true; D.stAll = [...D.stNames, 'Website', 'Unmapped'];
+  } else {                                                                  // older payloads: join on the store name
+    const norm = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(), tmap = new Map((p.st || []).map(r => [norm(r[0]), r[1]]));
+    D.hasST = tmap.size > 0; D.stNames = [...new Set(tmap.values())].sort(); D.stAll = D.hasST ? [...D.stNames, 'Unmapped'] : [];
+    D.cTypeName = D.custName.map(nm => tmap.get(norm(nm)) || 'Unmapped');
+    D.custRegion = new Uint8Array(nc); D.custSold = new Uint8Array(nc);
+  }
+  D.cST = Int16Array.from(D.cTypeName, x => D.stAll.indexOf(x));
+  D.check = (p.meta && p.meta.check) || null;
   return D;
 }
