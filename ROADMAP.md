@@ -69,3 +69,18 @@ Store types (global "Store type" filter, StoreTypes tab), stores not ordering fo
 - Clicks: KPI tiles via `UI.kpi({onClick})` or `UI.wireKpis(box, [[fn, tip], ...])`; hover lift + pointer + tooltip hint. Overview, Customers, Cities, Products KPIs jump to (and flash) the matching card or open the page/product; Overview top-customers rows open the store profile; B2B new-stores rows open the profile; Channels type cards filter the dashboard to that order type.
 - Tested: arrows 4,785/4,785 customers equal an independent calculation; sum of last-30 revenue = Overview 30d revenue; all KPI values on all pages unchanged; interstate arrows work; no console errors. sw.js ksd-v19.
 - Next: Phase 13 (speed).
+
+## Phase 13 done (28 Nov 2026) - Speed + new-version popup
+- Worker: js/worker.js (+ shared js/decode.js) does unzip, JSON.parse and decode off the main thread and hands typed arrays back without copying. Falls back to the main thread if Workers are unavailable. store.js keeps `build(job)`.
+- Cache: IndexedDB key `dec_<tab>` now holds the ready-to-use typed arrays (written by the worker, `DEC_FMT` in store.js - bump it when the shape of D changes). Reload = read arrays, no unzip/parse/decode. Old caches (`payload`, `payload_<tab>`) are still read once and converted.
+- Fetching: `a=ver` is checked first; data is downloaded only when the version differs (unchanged).
+- Filters: `F.mask` caches the last 8 row masks per filter state + dates (`F.gen` changes on any filter/data change). A page that is shown again with the same filters and data is not recalculated (app.js `mounted[page].gen`). Hidden pages never calculate.
+- New-version popup: `APP_VERSION` (js/app.js) must equal `VERSION` (sw.js) and `v` in version.json. `python3 tools/release.py` bumps all three and writes the file list into version.json. The page checks version.json (never cached) 3 s after start, every 5 min and when the tab is shown again; if it differs a popup appears; its button clears the caches, unregisters the service worker, re-downloads every file with cache:'reload' and reloads (what Ctrl+Shift+R does). Data and PIN are kept.
+- RELEASE CHECKLIST: change files -> `python3 tools/release.py` -> upload all files including version.json.
+- Tools: tools/make_synthetic.py N out.json, tools/bench.js (see header).
+- Measured (headless Chromium, 2 CPUs, synthetic rows; before -> after): 
+  - 500k rows: first load 778 -> 758 ms; longest page freeze 289 -> 74 ms; reload from cache 469 -> 301 ms; page revisit 39 -> 18 ms.
+  - 1M rows: first load 1320 -> 1382 ms; longest freeze 582 -> 105 ms; reload 892 -> 479 ms; page revisit 49 -> 19 ms.
+  - Filter click: unchanged, 40-100 ms at 1M rows (one pass over the rows; the full-range click ~210 ms). First visit of a page 51-65 ms avg.
+- Totals identical before/after: 500k = $47,473,362.83 / 244,912 orders; 1M = $95,021,920.21 / 488,925 orders; every KPI on every page equal; sample data KPIs equal to Phase 12. sw.js ksd-v20.
+- Next: live check on the real Sheet; then new requirements.

@@ -42,3 +42,7 @@ Add a tab named **StoreTypes** to the Google Sheet and paste your store list the
 - **PIN (required):** Apps Script > Project Settings > Script Properties > add `PIN` = your code. Redeploy as a NEW version. The page asks for the PIN once per device. Without the Script Property the API refuses to answer. 10 wrong PINs lock it for 10 minutes. Sheet sharing must stay Restricted. If the URL or PIN leaks, change the PIN (and make a new deployment).
 - The demo files in `data/` are anonymised (fake names, phones, ids, addresses). Rebuild them with `tools/build_sample.py`; never put the real export in the repo.
 - Status line shows rows loaded of Sheet rows, first and last date, and warns if fewer rows than last time or if rows were skipped.
+
+
+## Releasing a new version (Phase 13)
+1. Change the files. 2. Run `python3 tools/release.py` (bumps `VERSION` in sw.js, `APP_VERSION` in js/app.js and `v` in version.json). 3. Upload everything, including version.json. Open dashboards then show a "New version available - Refresh now" popup within 5 minutes (or when the tab is opened again); the button clears the app caches and reloads like Ctrl+Shift+R. Data and PIN are kept.

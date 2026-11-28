@@ -38,51 +38,28 @@ const Store = (() => {
     }
   }
 
-  /** Turn the columnar payload into typed arrays + order/customer tables. */
-  function decode(p) {
-    // customer = source_user_id; dictionary entry = [id, name, main phone, phones[]]
-    const rawList = p.dict.cust, rawC = p.c, phonesAll = rawList.map(c => (c[3] && c[3].length) ? c[3].map(String) : [String(c[2] || '')]);
-    const n = p.n, o = Int32Array.from(p.o);
-    // make sure all lines of one order are adjacent (server sorts, this is a safety net)
-    let grouped = true; const seen = new Set();
-    for (let i = 0; i < n && grouped; i++) { if (i && o[i] === o[i - 1]) continue; if (seen.has(o[i])) grouped = false; seen.add(o[i]); }
-    let perm = null;
-    if (!grouped) { perm = Int32Array.from({ length: n }, (_, i) => i); perm.sort((a, b) => p.d[a] - p.d[b] || o[a] - o[b] || a - b); }
-    const col = (arr, T) => { const out = new T(n); for (let i = 0; i < n; i++) out[i] = arr[perm ? perm[i] : i]; return out; };
-    const D = {
-      n, ver: p.v, dict: p.dict, w: p.w || {},
-      day: col(p.d, Int32Array), oid: col(p.o, Float64Array), iid: col(p.i, Float64Array), type: col(p.t, Uint8Array), prod: col(p.p, Uint16Array),
-      qty: col(p.q, Int32Array), amt: col(p.a, Float64Array), cust: col(p.c, Int32Array), rawCust: col(rawC, Int32Array), city: col(p.y, Uint16Array), addr: col(p.ad, Int32Array)
-    };
-    const oi = D.oi = new Int32Array(n);
-    let no = 0;
-    for (let i = 0; i < n; i++) { if (i && D.oid[i] === D.oid[i - 1]) oi[i] = no - 1; else oi[i] = no++; }
-    D.nOrders = no;
-    const oTotal = D.oTotal = new Float64Array(no), oStart = D.oStart = new Int32Array(no + 1), oUnits = D.oUnits = new Int32Array(no);
-    D.oDay = new Int32Array(no); D.oType = new Uint8Array(no); D.oCity = new Uint16Array(no); D.oCust = new Int32Array(no); D.oId = new Float64Array(no);
-    for (let i = 0; i < n; i++) {
-      const k = oi[i];
-      if (i === 0 || oi[i - 1] !== k) { oStart[k] = i; D.oDay[k] = D.day[i]; D.oType[k] = D.type[i]; D.oCity[k] = D.city[i]; D.oCust[k] = D.cust[i]; D.oId[k] = D.oid[i]; }
-      oTotal[k] += D.amt[i]; oUnits[k] += D.qty[i];
-    }
-    oStart[no] = n;
-    D.minDay = n ? D.day[0] : 0; D.maxDay = n ? D.day[n - 1] : 0;
-    for (let i = 0; i < n; i++) { if (D.day[i] < D.minDay) D.minDay = D.day[i]; if (D.day[i] > D.maxDay) D.maxDay = D.day[i]; }
-    // customers
-    const nc = p.dict.cust.length;
-    D.custName = p.dict.cust.map(c => c[1] || ''); D.custPhone = p.dict.cust.map(c => c[2] || '');
-    D.rawPhone = rawList.map(c => c[2] || ''); D.custPhonesAll = phonesAll; D.custId = rawList.map(c => String(c[0])); D.meta = p.meta || null;
-    D.custLabel = D.custName.map((nm, i) => nm || ('Customer ' + (D.custPhone[i] || D.custId[i])));
-    D.custSearch = D.custLabel.map((l, i) => (l + ' ' + phonesAll[i].join(' ')).toLowerCase());
-    D.cFirst = new Int32Array(nc).fill(1e9); D.cLast = new Int32Array(nc).fill(-1e9); D.cOrders = new Int32Array(nc);
-    for (let k = 0; k < no; k++) { const c = D.oCust[k], d = D.oDay[k]; if (d < D.cFirst[c]) D.cFirst[c] = d; if (d > D.cLast[c]) D.cLast[c] = d; D.cOrders[c]++; }
-    // store types (from the StoreTypes tab / bundled file), joined on the store name
-    const norm = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(), tmap = new Map((p.st || []).map(r => [norm(r[0]), r[1]]));
-    D.hasST = tmap.size > 0; D.stNames = [...new Set(tmap.values())].sort(); D.stAll = D.hasST ? [...D.stNames, 'Unmapped'] : [];
-    D.cTypeName = D.custName.map(nm => tmap.get(norm(nm)) || 'Unmapped'); D.cST = Int16Array.from(D.cTypeName, x => D.stAll.indexOf(x));
-    // stable colours per order type
-    D.typeColor = p.dict.type.map((t, i) => CFG.TYPE_COLORS[t] || CFG.PALETTE[(i + 4) % CFG.PALETTE.length]);
-    return D;
+  /** payload -> D (same function as in the worker). Colours need CFG, which the worker does not have, so they are added here. */
+  function finish(D) { D.typeColor = D.dict.type.map((t, i) => CFG.TYPE_COLORS[t] || CFG.PALETTE[(i + 4) % CFG.PALETTE.length]); return D; }
+  const decode = p => finish(ksdDecode(p)), DEC_FMT = 1;        // DEC_FMT: bump when the shape of D changes, so old caches are ignored
+
+  /** Web Worker: unzip + JSON.parse + decode happen off the main thread, so the page stays responsive while 100k-1M rows load.
+      Falls back to the main thread if workers are unavailable. job = { gz | url | obj, v, savedAt } */
+  let worker = null, wid = 0; const pend = new Map();
+  function getWorker() {
+    if (worker !== null) return worker;
+    try {
+      worker = new Worker('js/worker.js');
+      worker.onmessage = e => { const m = e.data, q = pend.get(m.id); if (!q) return; pend.delete(m.id); m.error ? q.rej(new Error(m.error)) : q.res(m.D); };
+      worker.onerror = () => { const q = [...pend.values()]; pend.clear(); worker = false; q.forEach(x => x.rej(new Error('worker'))); };
+    } catch (e) { worker = false; }
+    return worker;
+  }
+  async function build(job) {
+    const w = getWorker();
+    if (w) { try { return finish(await new Promise((res, rej) => { const id = ++wid; pend.set(id, { res, rej }); w.postMessage(Object.assign({ id }, job)); })); } catch (e) { if (worker !== false) throw e; } }
+    let p = job.obj;                                                   // fallback: same steps on the main thread
+    if (job.gz) p = await gunzipB64(job.gz); else if (job.url) p = await (await fetch(job.url)).json();
+    if (job.v != null) p.v = job.v; const D = decode(p); if (job.cache) idbSet(job.cache, { fmt: job.fmt, v: D.ver, savedAt: job.savedAt, D }); return D;
   }
 
   const listeners = [];
@@ -101,16 +78,17 @@ const Store = (() => {
     },
     emptySet() { return decode({ v: 'empty', n: 0, dict: { type: [], prod: [], city: [], addr: [], cust: [] }, d: [], o: [], i: [], t: [], p: [], q: [], a: [], c: [], y: [], ad: [] }); },
     async loadSet(name) {
-      if (!CFG.API_URL) { try { const r = await fetch(CFG.SAMPLE_INTERSTATE_URL); if (!r.ok) throw 0; return decode(await r.json()); } catch (e) { return S.emptySet(); } }
-      const c = await idbGet('payload_' + name);
-      if (c) { const D = decode(c); S.sets[name] = D; S.pullSet(name, false).catch(() => { }); return D; }
+      if (!CFG.API_URL) { try { return await build({ url: new URL(CFG.SAMPLE_INTERSTATE_URL, location.href).href }); } catch (e) { return S.emptySet(); } }
+      let c = await idbGet('dec_' + name); if (c && c.fmt !== DEC_FMT) c = null;
+      const old = c ? null : await idbGet('payload_' + name);                                              // old = cache format of earlier versions
+      if (c || old) { const D = c ? finish(c.D) : await build({ obj: old, cache: 'dec_' + name, fmt: DEC_FMT, savedAt: old.savedAt }); S.sets[name] = D; S.pullSet(name, false).catch(() => { }); return D; }
       return S.pullSet(name, true);
     },
     async pullSet(name, force) {
       if (!force && S.sets[name]) { const { v } = await api('a=ver&tab=' + name); if (v === S.sets[name].ver) return S.sets[name]; }
       await prog('Downloading from Google Sheet…', 10); const r = await api('a=data&tab=' + name + (force ? '&force=1' : ''));
-      await prog('Unzipping…', 65); const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
-      await prog('Building tables…', 85); idbSet('payload_' + name, p); const D = decode(p); S.sets[name] = D; S.loadedAt = Date.now();
+      await prog('Unzipping…', 65); const job = build({ gz: r.gz, v: r.v, cache: 'dec_' + name, fmt: DEC_FMT, savedAt: Date.now() });
+      await prog('Building tables…', 85); const D = await job; S.sets[name] = D; S.loadedAt = Date.now();
       if (S.name === name) { S.D = D; S.emit(false); }
       return D;
     },
@@ -118,13 +96,13 @@ const Store = (() => {
     async _init(setStatus) {
       const t0 = performance.now();
       if (!CFG.API_URL) {                                         // demo mode: bundled sample
-        const p = await (await fetch(CFG.SAMPLE_URL)).json();
-        S.D = decode(p); S.source = 'Demo data (sample file)'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;
+        S.D = await build({ url: new URL(CFG.SAMPLE_URL, location.href).href }); S.source = 'Demo data (sample file)'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;
         return S.D;
       }
-      const cached = await idbGet('payload');
-      if (cached) {
-        S.D = decode(cached); S.source = 'Local cache'; S.loadedAt = cached.savedAt || Date.now(); S.ms = performance.now() - t0;
+      let cached = await idbGet('dec_main'); if (cached && cached.fmt !== DEC_FMT) cached = null;
+      const old = cached ? null : await idbGet('payload');
+      if (cached || old) {
+        S.D = cached ? finish(cached.D) : await build({ obj: old, cache: 'dec_main', fmt: DEC_FMT, savedAt: old.savedAt }); S.source = 'Local cache'; S.loadedAt = (cached || old).savedAt || Date.now(); S.ms = performance.now() - t0;
         S.refresh(false).catch(() => { });                         // silent background check
         return S.D;
       }
@@ -139,9 +117,9 @@ const Store = (() => {
       const t0 = performance.now();
       if (!force && S.D) { const { v } = await api('a=ver'); if (v === S.D.ver) { S.checkedAt = Date.now(); S.emitStatus && S.emitStatus(); return false; } }
       await prog('Downloading from Google Sheet…', 10); const r = await api('a=data' + (force ? '&force=1' : ''));
-      await prog('Unzipping…', 65); const p = await gunzipB64(r.gz); p.v = r.v; p.savedAt = Date.now();
-      await prog('Building tables…', 85); idbSet('payload', p);
-      const first = !S.D, nd = decode(p); S.sets.main = nd;
+      await prog('Unzipping…', 65); const job = build({ gz: r.gz, v: r.v, cache: 'dec_main', fmt: DEC_FMT, savedAt: Date.now() });
+      await prog('Building tables…', 85); const nd = await job;
+      const first = !S.D; S.sets.main = nd;
       if (S.name !== 'main') return true;
       S.D = nd; S.source = 'Live from Google Sheet'; S.loadedAt = Date.now(); S.ms = performance.now() - t0;
       S.emit(first);

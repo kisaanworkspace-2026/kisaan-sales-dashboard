@@ -7,18 +7,19 @@ const F = (() => {
     dows: new Set(saved.dows || []), stypes: new Set(saved.stypes || []), q: saved.q || ''
   };
   const subs = [];
-  let lut = null, buf1 = null, buf2 = null;
+  let lut = null, gen = 0, sig = '', cache = [], lastD = null;                    // cache = recent row masks, keyed by filter state + dates, so going back to an earlier filter state costs nothing
   let cur = 'main'; const stash = {};
   const persist = () => store.set(cur === 'main' ? 'filters' : 'filters.' + cur, { preset: st.preset, from: st.from, to: st.to, types: [...st.types], prods: [...st.prods], cities: [...st.cities], dows: [...st.dows], stypes: [...st.stypes], q: st.q });
 
   function resolve() {                                            // names -> lookup tables for current dictionary
     const D = Store.D; if (!D) return;
+    if (D !== lastD) { lastD = D; cache = []; }                    // new data object (reload / other dataset): old masks are void
+    gen++; sig = JSON.stringify([[...st.types], [...st.prods], [...st.cities], [...st.dows], [...st.stypes], st.q.trim().toLowerCase()]) + '|' + Store.name + '|' + D.ver + '|' + D.n + '|' + D.custName.length;
     const mk = (set, list) => { if (!set.size) return null; const a = new Uint8Array(list.length); list.forEach((nm, i) => { if (set.has(nm)) a[i] = 1; }); return a; };
     lut = { stp: null, type: mk(st.types, D.dict.type), prod: mk(st.prods, D.dict.prod), city: mk(st.cities, D.dict.city), cust: null, dow: null };
     if (st.stypes.size) { lut.stp = new Uint8Array(D.custName.length); D.cTypeName.forEach((nm, i) => { if (st.stypes.has(nm)) lut.stp[i] = 1; }); }
     if (st.dows.size) { lut.dow = new Uint8Array(7); st.dows.forEach(d => lut.dow[d] = 1); }
     if (st.q.trim()) { const q = st.q.trim().toLowerCase(); lut.cust = new Uint8Array(D.custSearch.length); D.custSearch.forEach((t, i) => { if (t.includes(q)) lut.cust[i] = 1; }); }
-    if (!buf1 || buf1.length !== D.n) { buf1 = new Uint8Array(D.n); buf2 = new Uint8Array(D.n); }
   }
   const F = {
     st,
@@ -37,7 +38,9 @@ const F = (() => {
     prevRange() { const { from, to } = F.range(); const len = to - from + 1; const p = { from: from - len, to: from - 1 }; return p.to < Store.D.minDay ? null : p; },
     /** fills and returns a row mask. slot 0 = current, 1 = previous/second */
     mask(from, to, slot = 0, skipST = false) {
-      const D = Store.D, n = D.n, buf = slot ? buf2 : buf1, { type, prod, city, cust, dow } = lut, stp = skipST ? null : lut.stp;
+      const key = sig + '|' + from + '|' + to + '|' + (skipST ? 1 : 0), hit = cache.find(e => e.k === key); if (hit) return hit.a;     // same filter state + dates: no new pass over the rows
+      const D = Store.D, n = D.n, { type, prod, city, cust, dow } = lut, stp = skipST ? null : lut.stp;
+      let ent = cache.length >= 8 ? cache.shift() : { k: '', a: null }; if (!ent.a || ent.a.length !== n) ent.a = new Uint8Array(n); ent.k = key; cache.push(ent); const buf = ent.a;
       const day = D.day, T = D.type, P = D.prod, Y = D.city, C = D.cust;
       for (let i = 0; i < n; i++) {
         const d = day[i];
@@ -45,6 +48,8 @@ const F = (() => {
       }
       return buf;
     },
+    /** changes whenever the filters or the data change; pages use it to skip a re-calculation */
+    get gen() { return gen; },
     isActive() { return st.types.size || st.prods.size || st.cities.size || st.dows.size || st.stypes.size || st.q.trim(); },
     set(patch) { Object.assign(st, patch); F.changed(); },
     toggle(dim, val) { const s = st[dim]; s.has(val) ? s.delete(val) : s.add(val); F.changed(); },

@@ -19,6 +19,35 @@ const NAV = [
   { grp: 'Interstate sales', id: 'i-regional', page: 'customers', ds: 'main', title: 'Regional stores', icon: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6', line: true },
   { grp: 'Interstate sales', id: 'i-cities', page: 'geography', ds: 'interstate', title: 'Cities', icon: 'M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z', line: true },
 ];
+/* ---- new-version popup ----
+   APP_VERSION must equal VERSION in sw.js and "v" in version.json (tools/release.py bumps all three). The page asks version.json (never cached) at start,
+   every 5 minutes and when the tab is opened again. If it differs, a popup asks the person to refresh; the button does what Ctrl+Shift+R does:
+   clears the app-shell caches, unregisters the service worker, re-downloads every file bypassing the browser cache, and reloads. Data (IndexedDB) and the PIN are kept. */
+const APP_VERSION = 'ksd-v20';
+const Updater = (() => {
+  let shown = false;
+  async function hardRefresh(files) {
+    try { await Promise.all((await caches.keys()).map(k => caches.delete(k))); } catch (e) { }
+    try { await Promise.all((await navigator.serviceWorker.getRegistrations()).map(r => r.unregister())); } catch (e) { }
+    try { await Promise.all(['./', ...(files || [])].map(f => fetch(f, { cache: 'reload' }).catch(() => { }))); } catch (e) { }
+    location.reload();
+  }
+  function popup(j) {
+    if (shown) return; shown = true;
+    const btn = h('button', { type: 'button', class: 'nvbtn', onclick: () => { btn.disabled = true; btn.textContent = 'Refreshing…'; hardRefresh(j.files); } }, 'Refresh now');
+    document.body.append(h('div', { class: 'nvback', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': 'New version available' },
+      h('div', { class: 'nvbox' }, h('div', { class: 'nvic' }, '🔄'), h('h3', null, 'New version available'),
+        h('p', null, 'The dashboard has been updated. Please refresh to use the latest version. Your data and PIN are kept.'), btn)));
+    setTimeout(() => btn.focus(), 50);
+  }
+  async function check() {
+    if (shown || !location.protocol.startsWith('http')) return;
+    try { const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return; const j = await r.json(); if (j && j.v && j.v !== APP_VERSION) popup(j); } catch (e) { }
+  }
+  function start() { setTimeout(check, 3000); setInterval(check, 5 * 60 * 1000); document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); }); }
+  return { start, check, popup };
+})();
+
 const App = (() => {
   let current = null, mounted = {}, slicers = [], chips, dateBar, statusEl;
   const icon = (d, line) => s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, fill: line ? 'none' : 'currentColor', stroke: line ? 'currentColor' : 'none', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, s('path', { d }));
@@ -145,10 +174,10 @@ const App = (() => {
     current = Pages[page];
     if (!mounted[page] || mounted[page].D !== Store.D) { const el = h('div'); current.mount(el); mounted[page] = { D: Store.D, el }; }
     host.replaceChildren(...[ds !== 'main' ? h('div', { class: 'dsbanner' }, '🚚 Interstate stores (the 6 named interstate stores only) · ', h('a', { href: '#/i-regional' }, 'Regional stores →')) : (nav.id === 'i-regional' ? h('div', { class: 'dsbanner' }, '🏬 Regional stores = every store except the interstate ones · ', h('a', { href: '#/i-customers' }, '← Interstate stores')) : null), mounted[page].el].filter(Boolean));
-    current.update();
+    if (mounted[page].gen !== F.gen) { current.update(); mounted[page].gen = F.gen; }      // same filters + same data as last time: the page is already up to date
   }
 
-  const rerender = rafOnce(() => { syncFilters(); current && current.update(); });
+  const rerender = rafOnce(() => { syncFilters(); if (current) { current.update(); for (const k in mounted) if (mounted[k].el.isConnected) mounted[k].gen = F.gen; } });
 
   return {
     async start() {
@@ -169,7 +198,7 @@ const App = (() => {
       $('#theme').addEventListener('click', () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('theme', t); });
       $('#print').addEventListener('click', () => window.print());
       if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
-      setInterval(status, 60000);
+      setInterval(status, 60000); Updater.start();
       await show(); splash.classList.add('gone');
     }
   };

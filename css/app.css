@@ -168,3 +168,8 @@ th .info{text-transform:none;letter-spacing:0}.kl{display:flex;align-items:cente
 .kpi.clickable:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .hrow.click,.col.click,tr.click{cursor:pointer}.hrow.click:hover .hl{text-decoration:underline}
 .tcard.click{cursor:pointer;transition:transform .12s,box-shadow .12s}.tcard.click:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(20,60,40,.18)}.tcard.on{outline:2px solid var(--brand)}
+/* Phase 13: new-version popup */
+.nvback{position:fixed;inset:0;z-index:3000;background:rgba(10,20,15,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.nvbox{background:var(--card);color:var(--ink);border-radius:14px;padding:24px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.nvic{font-size:34px}.nvbox h3{margin:6px 0 8px}.nvbox p{margin:0 0 16px;color:var(--mut);font-size:14px;line-height:1.45}
+.nvbtn{background:var(--brand);color:#fff;border:0;border-radius:9px;padding:10px 22px;font-size:15px;font-weight:600;cursor:pointer}.nvbtn:disabled{opacity:.6;cursor:default}
